@@ -1,4 +1,4 @@
-module main
+module eventbridge-cli
 
 go 1.13
 
