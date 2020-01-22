@@ -13,14 +13,14 @@ import (
 
 var (
 	namespace = "eventbridge-cli"
-	uniqueID  = uuid.New().String()
+	runID     = uuid.New().String()
 )
 
 func main() {
 	app := &cli.App{
-		Name:    "eventbridge-cli",
+		Name:    namespace,
 		Version: "0.0.1",
-		Usage:   "AWS Eventbridge cli",
+		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
 			&cli.Author{Name: "matteo ridolfi"},
 		},

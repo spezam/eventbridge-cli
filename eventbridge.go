@@ -31,7 +31,7 @@ func newEventbridgeClient(eventBusName string) (*eventbridgeClient, error) {
 // create temp event rule
 func (e *eventbridgeClient) createRule(ctx context.Context) (string, error) {
 	res, err := e.client.PutRuleRequest(&eventbridge.PutRuleInput{
-		Name:         aws.String(namespace + "-" + uniqueID),
+		Name:         aws.String(namespace + "-" + runID),
 		Description:  aws.String(fmt.Sprintf("[%s] temp rule", namespace)),
 		EventBusName: aws.String(e.eventBusName),
 		EventPattern: aws.String(fmt.Sprintf(`{"source": [{"anything-but": ["%s"]}]}`, namespace)),
@@ -49,7 +49,7 @@ func (e *eventbridgeClient) deleteRule(ctx context.Context) error {
 	_, err := e.client.DeleteRuleRequest(&eventbridge.DeleteRuleInput{
 		EventBusName: aws.String(e.eventBusName),
 		Force:        aws.Bool(true),
-		Name:         aws.String(namespace + "-" + uniqueID),
+		Name:         aws.String(namespace + "-" + runID),
 	}).Send(ctx)
 	if err != nil {
 		log.Printf("eventbridge.DeleteRule error: %s", err)
@@ -61,11 +61,11 @@ func (e *eventbridgeClient) deleteRule(ctx context.Context) error {
 
 func (e *eventbridgeClient) putTarget(ctx context.Context, sqsArn string) error {
 	_, err := e.client.PutTargetsRequest(&eventbridge.PutTargetsInput{
-		Rule:         aws.String(namespace + "-" + uniqueID),
+		Rule:         aws.String(namespace + "-" + runID),
 		EventBusName: aws.String(e.eventBusName),
 		Targets: []eventbridge.Target{
 			eventbridge.Target{
-				Id:  aws.String(namespace + "-" + uniqueID),
+				Id:  aws.String(namespace + "-" + runID),
 				Arn: aws.String(sqsArn),
 			},
 		},
@@ -81,9 +81,9 @@ func (e *eventbridgeClient) putTarget(ctx context.Context, sqsArn string) error 
 func (e *eventbridgeClient) removeTarget(ctx context.Context) error {
 	_, err := e.client.RemoveTargetsRequest(&eventbridge.RemoveTargetsInput{
 		Ids: []string{
-			namespace + "-" + uniqueID,
+			namespace + "-" + runID,
 		},
-		Rule:         aws.String(namespace + "-" + uniqueID),
+		Rule:         aws.String(namespace + "-" + runID),
 		EventBusName: aws.String(e.eventBusName),
 	}).Send(ctx)
 	if err != nil {
