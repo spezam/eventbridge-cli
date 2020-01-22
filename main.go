@@ -3,6 +3,7 @@ package main
 // EventBus --> EventBrige Rule --> SQS <-- poller
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -32,6 +33,12 @@ func main() {
 				Usage:   "EventBridge Bus Name",
 				Value:   "default",
 			},
+			&cli.StringFlag{
+				Name:    "eventpattern",
+				Aliases: []string{"e"},
+				Usage:   "EventBridge event pattern",
+				Value:   fmt.Sprintf(`{"source": [{"anything-but": ["%s"]}]}`, namespace),
+			},
 			&cli.BoolFlag{
 				Name:    "prettyjson",
 				Aliases: []string{"j"},
@@ -55,8 +62,8 @@ func run(c *cli.Context) error {
 	}
 
 	// create temporary eventbridge event rule
-	log.Printf("creating temporary rule on bus [%s]", ebClient.eventBusName)
-	ruleArn, err := ebClient.createRule(c.Context)
+	log.Printf("creating temporary rule on bus [%s]: (%s)", ebClient.eventBusName, c.String("eventpattern"))
+	ruleArn, err := ebClient.createRule(c.Context, c.String("eventpattern"))
 	if err != nil {
 		return err
 	}
