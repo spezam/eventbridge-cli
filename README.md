@@ -1,4 +1,4 @@
-# ![logo](logo.png) eventbridge-cli
+# ![logo](assets/logo.png) eventbridge-cli
 
 Amazon EventBridge is a serverless event bus that makes it easy to connect applications together using data from your own applications, integrated Software-as-a-Service (SaaS) applications, and AWS services.
 
@@ -40,3 +40,5 @@ GLOBAL OPTIONS:
 ```sh
 AWS_PROFILE=myawsprofile eventbridge-cli -b fishnchips-eventbus -j
 ```
+
+![screenshot](assets/screenshot.png)
