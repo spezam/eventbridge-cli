@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/fatih/color"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 )
@@ -62,7 +63,7 @@ func run(c *cli.Context) error {
 	}
 
 	// create temporary eventbridge event rule
-	log.Printf("creating temporary rule on bus [%s]: (%s)", ebClient.eventBusName, c.String("eventpattern"))
+	log.Printf("creating temporary rule on bus [%s]: %s", ebClient.eventBusName, color.GreenString(c.String("eventpattern")))
 	ruleArn, err := ebClient.createRule(c.Context, c.String("eventpattern"))
 	if err != nil {
 		return err
