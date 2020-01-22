@@ -9,11 +9,6 @@ Evenbridge-cli is a tool to listen to an EventBus events. Useful for debugging.
 go build -o eventbridge-cli
 ```
 
-### Usage:
-```sh
-AWS_PROFILE=myawsprofile eventbridge-cli -b fishnchips-eventbus -j
-```
-
 ### Flags:
 ```
 NAME:
@@ -37,3 +32,8 @@ GLOBAL OPTIONS:
    --help, -h                      show help (default: false)
    --version, -v                   print the version (default: false)
    ```
+
+### Usage:
+```sh
+AWS_PROFILE=myawsprofile eventbridge-cli -b fishnchips-eventbus -j
+```
