@@ -1,6 +1,5 @@
 on: release
 name: Build Release
-name: Handle Release
 jobs:
   release-linux-amd64:
     name: release linux/amd64
