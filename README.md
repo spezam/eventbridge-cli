@@ -39,7 +39,10 @@ GLOBAL OPTIONS:
 
 ### Usage example:
 ```sh
-AWS_PROFILE=myawsprofile eventbridge-cli -b fishnchips-eventbus -e '{"source":["gamma"],"detail":{"channel":["web"]}}' -j
+AWS_PROFILE=myawsprofile eventbridge-cli -j \
+	-b fishnchips-eventbus \
+	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
 ```
 
 ![screenshot](assets/screenshot.png)
+
