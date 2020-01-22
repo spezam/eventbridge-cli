@@ -30,7 +30,7 @@ func newSQSClient(ctx context.Context, ruleArn string) (*sqsClient, error) {
 	// sqsArn arn:aws:sqs:eu-north-1:1234567890:eventbridge-cli-1579168041
 	a := strings.Split(ruleArn, ":")
 	region, accountID := a[3], a[4]
-	queueName := namespace + uniqueID
+	queueName := namespace + "-" + uniqueID
 	sqsArn := fmt.Sprintf("arn:aws:sqs:%s:%s:%s", region, accountID, queueName)
 
 	resp, err := client.CreateQueueRequest(&sqs.CreateQueueInput{
@@ -38,7 +38,7 @@ func newSQSClient(ctx context.Context, ruleArn string) (*sqsClient, error) {
 		Attributes: map[string]string{
 			"Policy": fmt.Sprintf(`{
 				"Version": "2012-10-17",
-				"Id": "%d",
+				"Id": "%s",
 				"Statement": [{
 					"Sid": "Sid1579089564623",
 					"Effect": "Allow",
@@ -53,7 +53,7 @@ func newSQSClient(ctx context.Context, ruleArn string) (*sqsClient, error) {
 						}
 					}
 				}]
-			}`, unixTimeNow, sqsArn, ruleArn),
+			}`, uniqueID, sqsArn, ruleArn),
 		},
 	}).Send(ctx)
 	if err != nil {

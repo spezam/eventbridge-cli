@@ -5,14 +5,16 @@ package main
 import (
 	"log"
 	"os"
-	"time"
+	"os/signal"
 
+	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 )
 
-const namespace = "eventbridge-cli"
-
-var unixTimeNow = time.Now().Unix()
+var (
+	namespace = "eventbridge-cli"
+	uniqueID  = uuid.New().String()
+)
 
 func main() {
 	app := &cli.App{
@@ -45,6 +47,62 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	log.Printf("eventbridge-cli")
+	// eventbridge client
+	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
+	ebClient, err := newEventbridgeClient(c.String("eventbusname"))
+	if err != nil {
+		return err
+	}
+
+	// create temporary eventbridge event rule
+	log.Printf("creating temporary rule on bus [%s]", ebClient.eventBusName)
+	ruleArn, err := ebClient.createRule(c.Context)
+	if err != nil {
+		return err
+	}
+	log.Printf("created temporary rule on bus [%s] with arn: %s", ebClient.eventBusName, ruleArn)
+
+	// SQS client
+	sqsClient, err := newSQSClient(c.Context, ruleArn)
+	if err != nil {
+		return err
+	}
+	log.Printf("created temporary SQS queue with URL: %s", sqsClient.queueURL)
+
+	// EventBus --> SQS
+	err = ebClient.putTarget(c.Context, sqsClient.sqsArn)
+	if err != nil {
+		return err
+	}
+	log.Printf("linked EventBus to SQS...")
+
+	// poll SQS queue undefinitely
+	breaker := make(chan struct{})
+	go sqsClient.pollQueue(c.Context, breaker, c.Bool("prettyjson"))
+
+	// wait for a SIGINT (ie. CTRL-C)
+	// run cleanup when signal is received
+	signalChan := make(chan os.Signal, 1)
+	cleanupDone := make(chan struct{})
+	signal.Notify(signalChan, os.Interrupt)
+	go func() {
+		<-signalChan
+
+		log.Printf("received an interrupt, cleaning up...")
+		breaker <- struct{}{}
+
+		log.Printf("removing EventBus target...")
+		ebClient.removeTarget(c.Context)
+
+		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
+		sqsClient.deleteQueue(c.Context)
+
+		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
+		ebClient.deleteRule(c.Context)
+
+		close(cleanupDone)
+	}()
+	<-cleanupDone
+
 	return nil
 }
