@@ -1,1 +1,1 @@
-# eventbridge-cli
+# ![logo](logo.png) eventbridge-cli
