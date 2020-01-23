@@ -9,6 +9,11 @@ EventBus --> EventBrige Rule --> SQS <-- poller
 
 ### Install from releases binary or build from source:
 ```
+wget https://github.com/spezam/eventbridge-cli/releases/download/<version>/eventbridge-cli_<version>_darwin_amd64.tar.gz
+tar xvfz eventbridge-cli_<version>_darwin_amd64.tar.gz
+mv eventbridge-cli /somewhere/in/PATH
+```
+```
 go build -o eventbridge-cli
 ```
 
