@@ -28,7 +28,6 @@ func newEventbridgeClient(eventBusName string) (*eventbridgeClient, error) {
 	}, err
 }
 
-// create temp event rule
 func (e *eventbridgeClient) createRule(ctx context.Context, eventPattern string) (string, error) {
 	res, err := e.client.PutRuleRequest(&eventbridge.PutRuleInput{
 		Name:         aws.String(namespace + "-" + runID),
