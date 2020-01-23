@@ -15,13 +15,13 @@ go build -o eventbridge-cli
 ### Flags:
 ```
 NAME:
-   eventbridge-cli - AWS Eventbridge cli
+   eventbridge-cli - AWS EventBridge cli
 
 USAGE:
-   eventbridge-cli [global options] command [command options] [arguments...]
+   eventbridge [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.1
+   0.1.0
 
 AUTHOR:
    matteo ridolfi
@@ -31,14 +31,20 @@ COMMANDS:
 
 GLOBAL OPTIONS:
    --eventbusname value, -b value  EventBridge Bus Name (default: "default")
+   --eventpattern value, -e value  EventBridge event pattern (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
    --prettyjson, -j                Pretty JSON output (default: false)
    --help, -h                      show help (default: false)
    --version, -v                   print the version (default: false)
-   ```
+```
 
-### Usage:
+### Usage example:
 ```sh
-AWS_PROFILE=myawsprofile eventbridge-cli -b fishnchips-eventbus -j
+AWS_PROFILE=myawsprofile eventbridge-cli
+
+AWS_PROFILE=myawsprofile eventbridge-cli -j \
+	-b fishnchips-eventbus \
+	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
 ```
 
 ![screenshot](assets/screenshot.png)
+
