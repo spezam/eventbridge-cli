@@ -20,7 +20,7 @@ var (
 func main() {
 	app := &cli.App{
 		Name:    namespace,
-		Version: "0.0.1",
+		Version: "0.1.0",
 		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
 			&cli.Author{Name: "matteo ridolfi"},
