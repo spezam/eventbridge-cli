@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/hokaccha/go-prettyjson v0.0.0-20190818114111-108c894c2c0e // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
+	github.com/stretchr/testify v1.2.2
 	github.com/urfave/cli/v2 v2.1.1
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
 	golang.org/x/sys v0.0.0-20200122134326-e047566fdf82 // indirect
