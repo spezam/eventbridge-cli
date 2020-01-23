@@ -21,20 +21,26 @@ type sqsClient struct {
 	sqsArn   string
 }
 
-func newSQSClient(ctx context.Context, ruleArn string) (*sqsClient, error) {
+func newSQSClient() (*sqsClient, error) {
 	cfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return nil, err
 	}
 	client := sqs.New(cfg)
 
+	return &sqsClient{
+		client: client,
+	}, err
+}
+
+func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 	// sqsArn arn:aws:sqs:region:1234567890:eventbridge-cli-9be17b1e-b374-4a98-a0f4-1a4879153baf
 	a := strings.Split(ruleArn, ":")
 	region, accountID := a[3], a[4]
-	queueName := namespace + "-" + runID
+	queueName := namespace + "-" + strings.Split(a[5], namespace+"-")[1]
 	sqsArn := fmt.Sprintf("arn:aws:sqs:%s:%s:%s", region, accountID, queueName)
 
-	resp, err := client.CreateQueueRequest(&sqs.CreateQueueInput{
+	resp, err := s.client.CreateQueueRequest(&sqs.CreateQueueInput{
 		QueueName: aws.String(queueName),
 		Attributes: map[string]string{
 			"Policy": fmt.Sprintf(`{
@@ -59,14 +65,13 @@ func newSQSClient(ctx context.Context, ruleArn string) (*sqsClient, error) {
 	}).Send(ctx)
 	if err != nil {
 		log.Printf("sqs.CreateQueue error: %s", err)
-		return nil, err
+		return err
 	}
 
-	return &sqsClient{
-		client:   client,
-		queueURL: *resp.QueueUrl,
-		sqsArn:   sqsArn,
-	}, err
+	s.queueURL = *resp.QueueUrl
+	s.sqsArn = sqsArn
+
+	return err
 }
 
 func (s *sqsClient) deleteQueue(ctx context.Context) error {
