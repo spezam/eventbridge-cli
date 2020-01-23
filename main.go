@@ -70,7 +70,13 @@ func run(c *cli.Context) error {
 	log.Printf("created temporary rule on bus [%s] with arn: %s", ebClient.eventBusName, ruleArn)
 
 	// SQS client
-	sqsClient, err := newSQSClient(c.Context, ruleArn)
+	sqsClient, err := newSQSClient()
+	if err != nil {
+		return err
+	}
+
+	// SQS queue
+	err = sqsClient.createQueue(c.Context, ruleArn)
 	if err != nil {
 		return err
 	}
