@@ -74,6 +74,14 @@ func Test_createQueue(t *testing.T) {
 			},
 			err: false,
 		},
+		{
+			name:    "create SQS queue - error",
+			ruleArn: "arn:aws:events:eu-north-1:1234567890:rule/eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e",
+			client: &mockSQSclient{
+				createQueueError: errors.New("unable to create SQS queue"),
+			},
+			err: true,
+		},
 	}
 
 	for _, test := range tests {
