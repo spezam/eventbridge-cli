@@ -7,7 +7,7 @@ Evenbridge-cli is a tool to listen to an EventBus events. Useful for debugging.
 EventBus --> EventBrige Rule --> SQS <-- poller
 ```
 
-### Build:
+### Install from release binary or build from source:
 ```
 go build -o eventbridge-cli
 ```
