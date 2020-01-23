@@ -11,10 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/sqsiface"
 )
 
 type sqsClient struct {
-	client *sqs.Client
+	client sqsiface.ClientAPI
 
 	queueURL string
 	sqsArn   string
@@ -80,7 +81,7 @@ func (s *sqsClient) deleteQueue(ctx context.Context) error {
 	return err
 }
 
-func (s *sqsClient) pollQueue(ctx context.Context, breaker chan struct{}, prettyJSON bool) error {
+func (s *sqsClient) pollQueue(ctx context.Context, breaker <-chan struct{}, prettyJSON bool) error {
 	log.Printf("polling queue %s ...", s.queueURL)
 	log.Printf("press ctr+c to stop")
 
