@@ -1,5 +1,5 @@
 # ![logo](assets/logo.png) eventbridge-cli
-[![Actions Status](https://github.com/spezam/eventbridge-cli/workflows/test/badge.svg)](https://github.com/spezam/eventbridge-cli/actions)
+[![Actions Status](https://github.com/spezam/eventbridge-cli/workflows/tests/badge.svg)](https://github.com/spezam/eventbridge-cli/actions)
 
 Amazon EventBridge is a serverless event bus that makes it easy to connect applications together using data from your own applications, integrated Software-as-a-Service (SaaS) applications, and AWS services.
 
