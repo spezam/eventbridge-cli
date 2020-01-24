@@ -5,36 +5,39 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/sqsiface"
 )
 
 type sqsClient struct {
-	client *sqs.Client
+	client sqsiface.ClientAPI
 
-	queueURL string
-	sqsArn   string
+	arn       string
+	queueName string
+	queueURL  string
 }
 
-func newSQSClient(ctx context.Context, ruleArn string) (*sqsClient, error) {
+func newSQSClient(accountID, queueName string) (*sqsClient, error) {
 	cfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return nil, err
 	}
 	client := sqs.New(cfg)
 
-	// sqsArn arn:aws:sqs:region:1234567890:eventbridge-cli-9be17b1e-b374-4a98-a0f4-1a4879153baf
-	a := strings.Split(ruleArn, ":")
-	region, accountID := a[3], a[4]
-	queueName := namespace + "-" + runID
-	sqsArn := fmt.Sprintf("arn:aws:sqs:%s:%s:%s", region, accountID, queueName)
+	return &sqsClient{
+		client:    client,
+		arn:       fmt.Sprintf("arn:aws:sqs:%s:%s:%s", cfg.Region, accountID, queueName),
+		queueName: queueName,
+	}, err
+}
 
-	resp, err := client.CreateQueueRequest(&sqs.CreateQueueInput{
-		QueueName: aws.String(queueName),
+func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
+	resp, err := s.client.CreateQueueRequest(&sqs.CreateQueueInput{
+		QueueName: aws.String(s.queueName),
 		Attributes: map[string]string{
 			"Policy": fmt.Sprintf(`{
 				"Version": "2012-10-17",
@@ -53,19 +56,16 @@ func newSQSClient(ctx context.Context, ruleArn string) (*sqsClient, error) {
 						}
 					}
 				}]
-			}`, runID, sqsArn, ruleArn),
+			}`, runID, s.arn, ruleArn),
 		},
 	}).Send(ctx)
 	if err != nil {
 		log.Printf("sqs.CreateQueue error: %s", err)
-		return nil, err
+		return err
 	}
 
-	return &sqsClient{
-		client:   client,
-		queueURL: *resp.QueueUrl,
-		sqsArn:   sqsArn,
-	}, err
+	s.queueURL = *resp.QueueUrl
+	return err
 }
 
 func (s *sqsClient) deleteQueue(ctx context.Context) error {
@@ -80,7 +80,7 @@ func (s *sqsClient) deleteQueue(ctx context.Context) error {
 	return err
 }
 
-func (s *sqsClient) pollQueue(ctx context.Context, breaker chan struct{}, prettyJSON bool) error {
+func (s *sqsClient) pollQueue(ctx context.Context, breaker <-chan struct{}, prettyJSON bool) error {
 	log.Printf("polling queue %s ...", s.queueURL)
 	log.Printf("press ctr+c to stop")
 
