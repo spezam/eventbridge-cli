@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -17,10 +18,18 @@ import (
 type mockSQSclient struct {
 	sqsiface.ClientAPI
 
-	createQueueResponse *sqs.CreateQueueOutput
+	createQueueResponse    *sqs.CreateQueueOutput
+	receiveMessageResponse *sqs.ReceiveMessageOutput
+
 	createQueueError    error
 	deleteQueueError    error
+	receiveMessageError error
 }
+
+const (
+	sqsArn  = "arn:aws:sqs:eu-north-1:1234567890:eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
+	ruleArn = "arn:aws:events:eu-north-1:1234567890:rule/eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
+)
 
 func init() {
 	// disable logger
@@ -47,6 +56,25 @@ func (m *mockSQSclient) DeleteQueueRequest(input *sqs.DeleteQueueInput) sqs.Dele
 	}
 }
 
+func (m *mockSQSclient) ReceiveMessageRequest(input *sqs.ReceiveMessageInput) sqs.ReceiveMessageRequest {
+	return sqs.ReceiveMessageRequest{
+		Request: &aws.Request{
+			Data:        m.receiveMessageResponse,
+			Error:       m.receiveMessageError,
+			HTTPRequest: &http.Request{},
+		},
+	}
+}
+
+func (m *mockSQSclient) DeleteMessageBatchRequest(input *sqs.DeleteMessageBatchInput) sqs.DeleteMessageBatchRequest {
+	return sqs.DeleteMessageBatchRequest{
+		Request: &aws.Request{
+			Data:        &sqs.DeleteMessageBatchOutput{},
+			Error:       m.receiveMessageError,
+			HTTPRequest: &http.Request{},
+		},
+	}
+}
 func Test_createQueue(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -57,7 +85,7 @@ func Test_createQueue(t *testing.T) {
 	}{
 		{
 			name:    "create SQS queue",
-			ruleArn: "arn:aws:events:eu-north-1:1234567890:rule/eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e",
+			ruleArn: ruleArn,
 			client: &mockSQSclient{
 				createQueueResponse: &sqs.CreateQueueOutput{
 					QueueUrl: aws.String("https://localhost"),
@@ -70,13 +98,13 @@ func Test_createQueue(t *testing.T) {
 					},
 				},
 				queueURL: "https://localhost",
-				sqsArn:   "arn:aws:sqs:eu-north-1:1234567890:eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e",
+				sqsArn:   sqsArn,
 			},
 			err: false,
 		},
 		{
 			name:    "create SQS queue - error",
-			ruleArn: "arn:aws:events:eu-north-1:1234567890:rule/eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e",
+			ruleArn: ruleArn,
 			client: &mockSQSclient{
 				createQueueError: errors.New("unable to create SQS queue"),
 			},
@@ -127,7 +155,7 @@ func Test_deleteQueue(t *testing.T) {
 			client := sqsClient{
 				client:   test.client,
 				queueURL: "https://localhost",
-				sqsArn:   "arn:aws:sqs:region:1234567890:eventbridge-cli-9be17b1e-b374-4a98-a0f4-1a4879153baf",
+				sqsArn:   sqsArn,
 			}
 
 			err := client.deleteQueue(context.Background())
@@ -141,25 +169,75 @@ func Test_deleteQueue(t *testing.T) {
 	}
 }
 
+func Test_pollQueueCancel(t *testing.T) {
+	t.Run("stopping poller", func(t *testing.T) {
+		client := sqsClient{}
+		breaker := make(chan struct{})
+
+		go client.pollQueue(context.Background(), breaker, false)
+		breaker <- struct{}{}
+	})
+}
+
 func Test_pollQueue(t *testing.T) {
-	client := sqsClient{}
-	breaker := make(chan struct{})
 	tests := []struct {
-		name string
-		err  bool
+		name       string
+		prettyJSON bool
+		client     *mockSQSclient
+		err        bool
 	}{
 		{
-			name: "stopping poller",
-			err:  false,
+			name: "poll SQS queue - no messages",
+			client: &mockSQSclient{
+				receiveMessageResponse: &sqs.ReceiveMessageOutput{
+					Messages: []sqs.Message{},
+				},
+			},
+			err: false,
+		},
+		{
+			name: "poll SQS queue",
+			client: &mockSQSclient{
+				receiveMessageResponse: &sqs.ReceiveMessageOutput{
+					Messages: []sqs.Message{
+						{
+							MessageId: aws.String("123"),
+							Body:      aws.String("{}"),
+						},
+					},
+				},
+			},
+			err: false,
+		},
+		{
+			name: "poll SQS queue - prettyJSON",
+			client: &mockSQSclient{
+				receiveMessageResponse: &sqs.ReceiveMessageOutput{
+					Messages: []sqs.Message{
+						{
+							MessageId: aws.String("123"),
+							Body:      aws.String("{}"),
+						},
+					},
+				},
+			},
+			prettyJSON: true,
+			err:        false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := context.Background()
-			go client.pollQueue(ctx, breaker, false)
+			breaker := make(chan struct{})
+			client := &sqsClient{
+				client:   test.client,
+				queueURL: "https://localhost",
+			}
+
+			go client.pollQueue(context.Background(), breaker, test.prettyJSON)
+
+			time.Sleep(2 * time.Second)
 			breaker <- struct{}{}
-			// assert.NoError(t, err)
 		})
 	}
 }
