@@ -201,8 +201,8 @@ func Test_pollQueue(t *testing.T) {
 				receiveMessageResponse: &sqs.ReceiveMessageOutput{
 					Messages: []sqs.Message{
 						{
-							MessageId: aws.String("123"),
-							Body:      aws.String("{}"),
+							MessageId: aws.String("dc909f9a-377b-cc13-627d-6fdbc2ea458c"),
+							Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),
 						},
 					},
 				},
@@ -215,8 +215,8 @@ func Test_pollQueue(t *testing.T) {
 				receiveMessageResponse: &sqs.ReceiveMessageOutput{
 					Messages: []sqs.Message{
 						{
-							MessageId: aws.String("123"),
-							Body:      aws.String("{}"),
+							MessageId: aws.String("dc909f9a-377b-cc13-627d-6fdbc2ea458c"),
+							Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),
 						},
 					},
 				},
