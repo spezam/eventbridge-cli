@@ -27,7 +27,7 @@ type mockSQSclient struct {
 }
 
 const (
-	sqsArn    = "arn:aws:sqs:eu-north-1:1234567890:eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
+	arn       = "arn:aws:sqs:eu-north-1:1234567890:eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
 	ruleArn   = "arn:aws:events:eu-north-1:1234567890:rule/eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
 	queueName = "eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
 )
@@ -98,7 +98,7 @@ func Test_createQueue(t *testing.T) {
 						QueueUrl: aws.String("https://localhost"),
 					},
 				},
-				sqsArn:    sqsArn,
+				arn:       arn,
 				queueName: queueName,
 				queueURL:  "https://localhost",
 			},
@@ -118,7 +118,7 @@ func Test_createQueue(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			client := &sqsClient{
 				client:    test.client,
-				sqsArn:    sqsArn,
+				arn:       arn,
 				queueName: queueName,
 			}
 
@@ -159,7 +159,7 @@ func Test_deleteQueue(t *testing.T) {
 			client := sqsClient{
 				client:   test.client,
 				queueURL: "https://localhost",
-				sqsArn:   sqsArn,
+				arn:      arn,
 			}
 
 			err := client.deleteQueue(context.Background())

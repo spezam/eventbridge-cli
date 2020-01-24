@@ -86,7 +86,7 @@ func run(c *cli.Context) error {
 	log.Printf("created temporary SQS queue with URL: %s", sqsClient.queueURL)
 
 	// EventBus --> SQS
-	err = ebClient.putTarget(c.Context, sqsClient.sqsArn)
+	err = ebClient.putTarget(c.Context, sqsClient.arn)
 	if err != nil {
 		return err
 	}

@@ -16,7 +16,7 @@ import (
 type sqsClient struct {
 	client sqsiface.ClientAPI
 
-	sqsArn    string
+	arn       string
 	queueName string
 	queueURL  string
 }
@@ -30,7 +30,7 @@ func newSQSClient(accountID, queueName string) (*sqsClient, error) {
 
 	return &sqsClient{
 		client:    client,
-		sqsArn:    fmt.Sprintf("arn:aws:sqs:%s:%s:%s", cfg.Region, accountID, queueName),
+		arn:       fmt.Sprintf("arn:aws:sqs:%s:%s:%s", cfg.Region, accountID, queueName),
 		queueName: queueName,
 	}, err
 }
@@ -56,7 +56,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 						}
 					}
 				}]
-			}`, runID, s.sqsArn, ruleArn),
+			}`, runID, s.arn, ruleArn),
 		},
 	}).Send(ctx)
 	if err != nil {
