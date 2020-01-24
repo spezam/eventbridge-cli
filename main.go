@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
@@ -70,7 +71,10 @@ func run(c *cli.Context) error {
 	log.Printf("created temporary rule on bus [%s] with arn: %s", ebClient.eventBusName, ruleArn)
 
 	// SQS client
-	sqsClient, err := newSQSClient()
+	a := strings.Split(ruleArn, ":")
+	accountID := a[3]
+	queueName := namespace + "-" + runID
+	sqsClient, err := newSQSClient(accountID, queueName)
 	if err != nil {
 		return err
 	}

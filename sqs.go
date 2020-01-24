@@ -21,7 +21,7 @@ type sqsClient struct {
 	queueURL  string
 }
 
-func newSQSClient(region, accountID, queueName string) (*sqsClient, error) {
+func newSQSClient(accountID, queueName string) (*sqsClient, error) {
 	cfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func newSQSClient(region, accountID, queueName string) (*sqsClient, error) {
 
 	return &sqsClient{
 		client:    client,
-		sqsArn:    fmt.Sprintf("arn:aws:sqs:%s:%s:%s", region, accountID, queueName),
+		sqsArn:    fmt.Sprintf("arn:aws:sqs:%s:%s:%s", cfg.Region, accountID, queueName),
 		queueName: queueName,
 	}, err
 }

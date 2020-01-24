@@ -27,8 +27,9 @@ type mockSQSclient struct {
 }
 
 const (
-	sqsArn  = "arn:aws:sqs:eu-north-1:1234567890:eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
-	ruleArn = "arn:aws:events:eu-north-1:1234567890:rule/eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
+	sqsArn    = "arn:aws:sqs:eu-north-1:1234567890:eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
+	ruleArn   = "arn:aws:events:eu-north-1:1234567890:rule/eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
+	queueName = "eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
 )
 
 func init() {
@@ -97,13 +98,14 @@ func Test_createQueue(t *testing.T) {
 						QueueUrl: aws.String("https://localhost"),
 					},
 				},
-				queueURL: "https://localhost",
-				sqsArn:   sqsArn,
+				sqsArn:    sqsArn,
+				queueName: queueName,
+				queueURL:  "https://localhost",
 			},
 			err: false,
 		},
 		{
-			name:    "create SQS queue - error",
+			name:    "create SQS queue error",
 			ruleArn: ruleArn,
 			client: &mockSQSclient{
 				createQueueError: errors.New("unable to create SQS queue"),
@@ -115,7 +117,9 @@ func Test_createQueue(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			client := &sqsClient{
-				client: test.client,
+				client:    test.client,
+				sqsArn:    sqsArn,
+				queueName: queueName,
 			}
 
 			err := client.createQueue(context.Background(), test.ruleArn)
@@ -187,15 +191,6 @@ func Test_pollQueue(t *testing.T) {
 		err        bool
 	}{
 		{
-			name: "poll SQS queue - no messages",
-			client: &mockSQSclient{
-				receiveMessageResponse: &sqs.ReceiveMessageOutput{
-					Messages: []sqs.Message{},
-				},
-			},
-			err: false,
-		},
-		{
 			name: "poll SQS queue",
 			client: &mockSQSclient{
 				receiveMessageResponse: &sqs.ReceiveMessageOutput{
@@ -205,6 +200,15 @@ func Test_pollQueue(t *testing.T) {
 							Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),
 						},
 					},
+				},
+			},
+			err: false,
+		},
+		{
+			name: "poll SQS queue - no messages",
+			client: &mockSQSclient{
+				receiveMessageResponse: &sqs.ReceiveMessageOutput{
+					Messages: []sqs.Message{},
 				},
 			},
 			err: false,
