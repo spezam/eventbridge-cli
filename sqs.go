@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -17,11 +16,12 @@ import (
 type sqsClient struct {
 	client sqsiface.ClientAPI
 
-	queueURL string
-	sqsArn   string
+	sqsArn    string
+	queueName string
+	queueURL  string
 }
 
-func newSQSClient() (*sqsClient, error) {
+func newSQSClient(region, accountID, queueName string) (*sqsClient, error) {
 	cfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return nil, err
@@ -29,19 +29,15 @@ func newSQSClient() (*sqsClient, error) {
 	client := sqs.New(cfg)
 
 	return &sqsClient{
-		client: client,
+		client:    client,
+		sqsArn:    fmt.Sprintf("arn:aws:sqs:%s:%s:%s", region, accountID, queueName),
+		queueName: queueName,
 	}, err
 }
 
 func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
-	// sqsArn arn:aws:sqs:region:1234567890:eventbridge-cli-9be17b1e-b374-4a98-a0f4-1a4879153baf
-	a := strings.Split(ruleArn, ":")
-	region, accountID := a[3], a[4]
-	queueName := namespace + "-" + strings.Split(a[5], namespace+"-")[1]
-	sqsArn := fmt.Sprintf("arn:aws:sqs:%s:%s:%s", region, accountID, queueName)
-
 	resp, err := s.client.CreateQueueRequest(&sqs.CreateQueueInput{
-		QueueName: aws.String(queueName),
+		QueueName: aws.String(s.queueName),
 		Attributes: map[string]string{
 			"Policy": fmt.Sprintf(`{
 				"Version": "2012-10-17",
@@ -60,7 +56,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 						}
 					}
 				}]
-			}`, runID, sqsArn, ruleArn),
+			}`, runID, s.sqsArn, ruleArn),
 		},
 	}).Send(ctx)
 	if err != nil {
@@ -69,8 +65,6 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 	}
 
 	s.queueURL = *resp.QueueUrl
-	s.sqsArn = sqsArn
-
 	return err
 }
 
