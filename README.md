@@ -8,14 +8,15 @@ Evenbridge-cli is a tool to listen to an EventBus events. Useful for debugging.
 EventBus --> EventBrige Rule --> SQS <-- poller
 ```
 
-### Install from releases binary or build from source:
+### Install from releases binary:
 ```
 wget https://github.com/spezam/eventbridge-cli/releases/download/<version>/eventbridge-cli_<version>_darwin_amd64.tar.gz
 tar xvfz eventbridge-cli_<version>_darwin_amd64.tar.gz
 mv eventbridge-cli /somewhere/in/PATH
 ```
+###or build from source:
 ```
-go build -o eventbridge-cli
+go build
 ```
 
 ### Flags:
@@ -53,4 +54,7 @@ AWS_PROFILE=myawsprofile eventbridge-cli -j \
 ```
 
 ![screenshot](assets/screenshot.png)
+
+### Content-based Filtering with Event Patterns reference:
+https://docs.aws.amazon.com/eventbridge/latest/userguide/content-filtering-with-event-patterns.html
 
