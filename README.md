@@ -58,3 +58,19 @@ AWS_PROFILE=myawsprofile eventbridge-cli -j \
 ### Content-based Filtering with Event Patterns reference:
 https://docs.aws.amazon.com/eventbridge/latest/userguide/content-filtering-with-event-patterns.html
 
+Here is a summary of all the comparison operators available in EventBridge:
+```
+Comparison  		Example 						Rule syntax
+Null        		UserID is null						“UserID”: [ null ]
+Empty       		LastName is empty 					“LastName”: [“”]
+Equals      		Name is “Alice” 					“Name”: [ “Alice” ]
+And         		Location is “New York” and Day is “Monday” 		“Location”: [ “New York” ], “Day”: [“Monday”]
+Or          		PaymentType is “Credit” or “Debit” 			“PaymentType”: [ “Credit”, “Debit”]
+Not         		Weather is anything but “Raining” 			“Weather”: [ { “anything-but”: [ “Raining” ] } ]
+Numeric (equals) 	Price is 100 						“Price”: [ { “numeric”: [ “=”, 100 ] } ]
+Numeric (range) 	Price is more than 10, and less than or equal to 20 	“Price”: [ { “numeric”: [ “>”, 10, “<=”, 20 ] } ]
+Exists      		ProductName exists 					“ProductName”: [ { “exists”: true } ]
+Does not exist		ProductName does not exist 				“ProductName”: [ { “exists”: false } ]
+Begins with		Region is in the US 					“Region”: [ {“prefix”: “us-“ } ]
+```
+
