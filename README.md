@@ -61,7 +61,7 @@ https://docs.aws.amazon.com/eventbridge/latest/userguide/content-filtering-with-
 Here is a summary of all the comparison operators available in EventBridge:
 
 | Comparison | Example | Rule syntax  |
-| ------------ |------------------:| --------------------|
+| ------------ |------------------ | --------------------|
 | Null | UserID is null | "UserID": [ null ] |
 | Empty | LastName is empty | "LastName": [""] |
 | Equals | Name is "Alice" | "Name": [ "Alice" ] |
