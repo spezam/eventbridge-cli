@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/TylerBrock/colorjson v0.0.0-20180527164720-95ec53f28296
-	github.com/aws/aws-sdk-go-v2 v0.18.0
+	github.com/aws/aws-sdk-go-v2 v0.19.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/google/uuid v1.1.1
@@ -12,7 +12,7 @@ require (
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/stretchr/testify v1.2.2
 	github.com/urfave/cli/v2 v2.1.1
-	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
-	golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9 // indirect
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
+	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
 	golang.org/x/text v0.3.2 // indirect
 )
