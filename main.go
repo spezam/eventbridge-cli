@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 )
@@ -28,6 +29,13 @@ func main() {
 		},
 		Action: run,
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "profile",
+				Aliases: []string{"p"},
+				Usage:   "AWS profile",
+				Value:   "default",
+				EnvVars: []string{"AWS_PROFILE"},
+			},
 			&cli.StringFlag{
 				Name:    "eventbusname",
 				Aliases: []string{"b"},
@@ -55,6 +63,9 @@ func main() {
 }
 
 func run(c *cli.Context) error {
+	// set AWS profile
+	external.DefaultSharedConfigProfile = c.String("profile")
+
 	// eventbridge client
 	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
 	ebClient, err := newEventbridgeClient(c.String("eventbusname"))
