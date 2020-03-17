@@ -9,10 +9,11 @@ require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/hokaccha/go-prettyjson v0.0.0-20190818114111-108c894c2c0e // indirect
-	github.com/mattn/go-isatty v0.0.12 // indirect
-	github.com/stretchr/testify v1.2.2
-	github.com/urfave/cli/v2 v2.1.1
-	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
-	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
+	github.com/jmespath/go-jmespath v0.3.0 // indirect
+	github.com/mattn/go-colorable v0.1.6 // indirect
+	github.com/stretchr/testify v1.5.1
+	github.com/urfave/cli/v2 v2.2.0
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
+	golang.org/x/sys v0.0.0-20200316230553-a7d97aace0b0 // indirect
 	golang.org/x/text v0.3.2 // indirect
 )
