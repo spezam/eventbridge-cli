@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 )
 
@@ -16,16 +15,11 @@ type eventbridgeClient struct {
 	eventBusName string
 }
 
-func newEventbridgeClient(eventBusName string) (*eventbridgeClient, error) {
-	cfg, err := external.LoadDefaultAWSConfig()
-	if err != nil {
-		return nil, err
-	}
-
+func newEventbridgeClient(cfg aws.Config, eventBusName string) *eventbridgeClient {
 	return &eventbridgeClient{
 		client:       eventbridge.New(cfg),
 		eventBusName: eventBusName,
-	}, err
+	}
 }
 
 func (e *eventbridgeClient) createRule(ctx context.Context, eventPattern string) (string, error) {

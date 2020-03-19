@@ -34,7 +34,13 @@ func main() {
 				Aliases: []string{"p"},
 				Usage:   "AWS profile",
 				Value:   "default",
-				EnvVars: []string{"AWS_PROFILE"},
+				EnvVars: []string{external.AWSProfileEnvVar},
+			},
+			&cli.StringFlag{
+				Name:    "region",
+				Aliases: []string{"r"},
+				Usage:   "AWS region",
+				EnvVars: []string{external.AWSDefaultRegionEnvVar},
 			},
 			&cli.StringFlag{
 				Name:    "eventbusname",
@@ -66,12 +72,17 @@ func run(c *cli.Context) error {
 	// set AWS profile
 	external.DefaultSharedConfigProfile = c.String("profile")
 
-	// eventbridge client
-	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
-	ebClient, err := newEventbridgeClient(c.String("eventbusname"))
+	awsCfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return err
 	}
+	if c.String("region") != "" {
+		awsCfg.Region = c.String("region")
+	}
+
+	// eventbridge client
+	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, c.String("eventbusname"))
 
 	// create temporary eventbridge event rule
 	log.Printf("creating temporary rule on bus [%s]: %s", ebClient.eventBusName, c.String("eventpattern"))
@@ -84,10 +95,7 @@ func run(c *cli.Context) error {
 	// SQS client
 	accountID := strings.Split(ruleArn, ":")[4]
 	queueName := namespace + "-" + runID
-	sqsClient, err := newSQSClient(accountID, queueName)
-	if err != nil {
-		return err
-	}
+	sqsClient := newSQSClient(awsCfg, accountID, queueName)
 
 	// SQS queue
 	err = sqsClient.createQueue(c.Context, ruleArn)
