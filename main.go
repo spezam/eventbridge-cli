@@ -145,6 +145,7 @@ func newAWSConfig(profile, region string) (aws.Config, error) {
 		return aws.Config{}, err
 	}
 
+	// override profile region if present
 	if region != "" {
 		cfg.Region = region
 	}
