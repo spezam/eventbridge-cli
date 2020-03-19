@@ -43,6 +43,7 @@ func (m *mockSQSclient) CreateQueueRequest(input *sqs.CreateQueueInput) sqs.Crea
 			Data:        m.createQueueResponse,
 			Error:       m.createQueueError,
 			HTTPRequest: &http.Request{},
+			Retryer:     aws.NoOpRetryer{},
 		},
 	}
 }
@@ -53,6 +54,7 @@ func (m *mockSQSclient) DeleteQueueRequest(input *sqs.DeleteQueueInput) sqs.Dele
 			Data:        &sqs.DeleteQueueOutput{},
 			Error:       m.deleteQueueError,
 			HTTPRequest: &http.Request{},
+			Retryer:     aws.NoOpRetryer{},
 		},
 	}
 }
@@ -63,6 +65,7 @@ func (m *mockSQSclient) ReceiveMessageRequest(input *sqs.ReceiveMessageInput) sq
 			Data:        m.receiveMessageResponse,
 			Error:       m.receiveMessageError,
 			HTTPRequest: &http.Request{},
+			Retryer:     aws.NoOpRetryer{},
 		},
 	}
 }
@@ -73,6 +76,7 @@ func (m *mockSQSclient) DeleteMessageBatchRequest(input *sqs.DeleteMessageBatchI
 			Data:        &sqs.DeleteMessageBatchOutput{},
 			Error:       m.receiveMessageError,
 			HTTPRequest: &http.Request{},
+			Retryer:     aws.NoOpRetryer{},
 		},
 	}
 }
