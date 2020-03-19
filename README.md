@@ -37,6 +37,8 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
+   --profile value, -p value       AWS profile (default: "default") [$AWS_PROFILE]
+   --region value, -r value        AWS region [$AWS_DEFAULT_REGION]
    --eventbusname value, -b value  EventBridge Bus Name (default: "default")
    --eventpattern value, -e value  EventBridge event pattern (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
    --prettyjson, -j                Pretty JSON output (default: false)
@@ -46,9 +48,16 @@ GLOBAL OPTIONS:
 
 ### Usage example:
 ```sh
+# with env variables
 AWS_PROFILE=myawsprofile eventbridge-cli
+AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
 
-AWS_PROFILE=myawsprofile eventbridge-cli -j \
+# with cli flags
+eventbridge-cli --profile myawsprofile
+eventbridge-cli --profile myawsprofile --region eu-north-1
+
+# full example - with event pattern
+eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
 ```
