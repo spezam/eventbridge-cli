@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
@@ -69,15 +70,10 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	// set AWS profile
-	external.DefaultSharedConfigProfile = c.String("profile")
-
-	awsCfg, err := external.LoadDefaultAWSConfig()
+	// AWS client
+	awsCfg, err := newAWSConfig(c.String("profile"), c.String("region"))
 	if err != nil {
 		return err
-	}
-	if c.String("region") != "" {
-		awsCfg.Region = c.String("region")
 	}
 
 	// eventbridge client
@@ -140,4 +136,18 @@ func run(c *cli.Context) error {
 	<-cleanupDone
 
 	return nil
+}
+
+func newAWSConfig(profile, region string) (aws.Config, error) {
+	external.DefaultSharedConfigProfile = profile
+	cfg, err := external.LoadDefaultAWSConfig()
+	if err != nil {
+		return aws.Config{}, err
+	}
+
+	if region != "" {
+		cfg.Region = region
+	}
+
+	return cfg, nil
 }
