@@ -50,7 +50,7 @@ GLOBAL OPTIONS:
 ```sh
 # with env variables
 AWS_PROFILE=myawsprofile eventbridge-cli
-AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
+AWS_PROFILE=myawsprofile AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
 
 # with cli flags
 eventbridge-cli --profile myawsprofile
