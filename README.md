@@ -37,6 +37,8 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
+   --profile value, -p value       AWS profile (default: "default") [$AWS_PROFILE]
+   --region value, -r value        AWS region [$AWS_DEFAULT_REGION]
    --eventbusname value, -b value  EventBridge Bus Name (default: "default")
    --eventpattern value, -e value  EventBridge event pattern (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
    --prettyjson, -j                Pretty JSON output (default: false)
@@ -46,9 +48,16 @@ GLOBAL OPTIONS:
 
 ### Usage example:
 ```sh
+# with env variables
 AWS_PROFILE=myawsprofile eventbridge-cli
+AWS_PROFILE=myawsprofile AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
 
-AWS_PROFILE=myawsprofile eventbridge-cli -j \
+# with cli flags
+eventbridge-cli --profile myawsprofile
+eventbridge-cli --profile myawsprofile --region eu-north-1
+
+# full example - with event pattern
+eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
 ```
@@ -67,11 +76,11 @@ Here is a summary of all the comparison operators available in EventBridge:
 | Equals | Name is "Alice" | "Name": [ "Alice" ] |
 | And | Location is "New York" and Day is "Monday" | "Location": [ "New York" ], "Day": [ "Monday" ] |
 | Or | PaymentType is "Credit" or "Debit" | "PaymentType": [ "Credit", "Debit" ] |
-| Not | Weather is anything but "Raining" | "Weather": [ { "anything-but": [ "Raining" ] } ] |
-| Numeric (equals) | Price is 100 | "Price": [ { "numeric": [ "=", 100 ] } ] |
-| Numeric (range) | Price is more than 10, and less than or equal to 20 | "Price": [ { "numeric": [ ">", 10, "<=", 20 ] } ] |
-| Exists | ProductName exists | "ProductName": [ { "exists": true } ] |
-| Does not exist | ProductName does not exist | "ProductName": [ { "exists": false } ] |
-| Begins with | Region is in the US | "Region": [ { "prefix": "us-" } ] |
+| Not | Weather is anything but "Raining" | "Weather": [{ "anything-but": [ "Raining" ] }] |
+| Numeric (equals) | Price is 100 | "Price": [{ "numeric": [ "=", 100 ] }] |
+| Numeric (range) | Price is more than 10, and less than or equal to 20 | "Price": [{ "numeric": [ ">", 10, "<=", 20 ] }] |
+| Exists | ProductName exists | "ProductName": [{ "exists": true }] |
+| Does not exist | ProductName does not exist | "ProductName": [{ "exists": false }] |
+| Begins with | Region is in the US | "Region": [{ "prefix": "us-" }] |
 
 

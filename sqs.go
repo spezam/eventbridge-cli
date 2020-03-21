@@ -8,7 +8,6 @@ import (
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/sqsiface"
 )
@@ -21,18 +20,12 @@ type sqsClient struct {
 	queueURL  string
 }
 
-func newSQSClient(accountID, queueName string) (*sqsClient, error) {
-	cfg, err := external.LoadDefaultAWSConfig()
-	if err != nil {
-		return nil, err
-	}
-	client := sqs.New(cfg)
-
+func newSQSClient(cfg aws.Config, accountID, queueName string) *sqsClient {
 	return &sqsClient{
-		client:    client,
+		client:    sqs.New(cfg),
 		arn:       fmt.Sprintf("arn:aws:sqs:%s:%s:%s", cfg.Region, accountID, queueName),
 		queueName: queueName,
-	}, err
+	}
 }
 
 func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {

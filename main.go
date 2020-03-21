@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
@@ -22,7 +23,7 @@ var (
 func main() {
 	app := &cli.App{
 		Name:    namespace,
-		Version: "0.1.1",
+		Version: "0.1.4",
 		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
 			&cli.Author{Name: "matteo ridolfi"},
@@ -34,7 +35,13 @@ func main() {
 				Aliases: []string{"p"},
 				Usage:   "AWS profile",
 				Value:   "default",
-				EnvVars: []string{"AWS_PROFILE"},
+				EnvVars: []string{external.AWSProfileEnvVar},
+			},
+			&cli.StringFlag{
+				Name:    "region",
+				Aliases: []string{"r"},
+				Usage:   "AWS region",
+				EnvVars: []string{external.AWSDefaultRegionEnvVar},
 			},
 			&cli.StringFlag{
 				Name:    "eventbusname",
@@ -63,15 +70,15 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	// set AWS profile
-	external.DefaultSharedConfigProfile = c.String("profile")
-
-	// eventbridge client
-	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
-	ebClient, err := newEventbridgeClient(c.String("eventbusname"))
+	// AWS config
+	awsCfg, err := newAWSConfig(c.String("profile"), c.String("region"))
 	if err != nil {
 		return err
 	}
+
+	// eventbridge client
+	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, c.String("eventbusname"))
 
 	// create temporary eventbridge event rule
 	log.Printf("creating temporary rule on bus [%s]: %s", ebClient.eventBusName, c.String("eventpattern"))
@@ -84,10 +91,7 @@ func run(c *cli.Context) error {
 	// SQS client
 	accountID := strings.Split(ruleArn, ":")[4]
 	queueName := namespace + "-" + runID
-	sqsClient, err := newSQSClient(accountID, queueName)
-	if err != nil {
-		return err
-	}
+	sqsClient := newSQSClient(awsCfg, accountID, queueName)
 
 	// SQS queue
 	err = sqsClient.createQueue(c.Context, ruleArn)
@@ -132,4 +136,19 @@ func run(c *cli.Context) error {
 	<-cleanupDone
 
 	return nil
+}
+
+func newAWSConfig(profile, region string) (aws.Config, error) {
+	external.DefaultSharedConfigProfile = profile
+	cfg, err := external.LoadDefaultAWSConfig()
+	if err != nil {
+		return aws.Config{}, err
+	}
+
+	// override profile region if present
+	if region != "" {
+		cfg.Region = region
+	}
+
+	return cfg, nil
 }
