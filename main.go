@@ -70,7 +70,7 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	// AWS client
+	// AWS config
 	awsCfg, err := newAWSConfig(c.String("profile"), c.String("region"))
 	if err != nil {
 		return err
