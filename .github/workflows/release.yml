@@ -1,5 +1,7 @@
-on: release
-name: release
+on:
+  release:
+    types: [created]
+
 jobs:
   releases-matrix:
     name: Release Go Binary
