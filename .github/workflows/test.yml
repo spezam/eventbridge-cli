@@ -1,6 +1,6 @@
 name: test
 
-n:
+on:
   push:
     branches:
       - 'master'
