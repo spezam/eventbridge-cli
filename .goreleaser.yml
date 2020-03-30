@@ -15,10 +15,11 @@ builds:
 
 archives:
   - format: tar.gz
-    files:
-      - none*
     wrap_in_directory: true
     format_overrides:
       - goos: windows
         format: zip
+    # remove README and LICENSE
+    files:
+      - none*
 
