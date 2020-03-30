@@ -21,7 +21,7 @@ jobs:
 
       -
         name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v1
+        uses: goreleaser/goreleaser-action@master
         with:
           version: latest
           args: release --rm-dist
