@@ -23,7 +23,7 @@ var (
 func main() {
 	app := &cli.App{
 		Name:    namespace,
-		Version: "1.0.0",
+		Version: "1.1.0",
 		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
 			&cli.Author{Name: "matteo ridolfi"},
@@ -57,7 +57,6 @@ func run(c *cli.Context) error {
 			return err
 		}
 	}
-
 	log.Printf("creating temporary rule on bus [%s]: %s", ebClient.eventBusName, eventpattern)
 	ruleArn, err := ebClient.createRule(c.Context, eventpattern)
 	if err != nil {
