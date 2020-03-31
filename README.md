@@ -64,10 +64,15 @@ AWS_PROFILE=myawsprofile AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
 eventbridge-cli --profile myawsprofile
 eventbridge-cli --profile myawsprofile --region eu-north-1
 
-# full example - with event pattern
+# with event pattern
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
+
+# with event pattern from file in testdata/eventpattern.json
+eventbridge-cli -p myawsprofile -j \
+	-b fishnchips-eventbus \
+   -e file://testdata/eventpattern.json
 ```
 
 ![screenshot](assets/screenshot.png)
