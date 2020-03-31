@@ -22,7 +22,7 @@ wget https://github.com/spezam/eventbridge-cli/releases/download/<version>/event
 tar xvfz eventbridge-cli_<version>_darwin_amd64.tar.gz
 mv eventbridge-cli /somewhere/in/PATH
 ```
-###or build from source:
+### or build from source:
 ```
 go build
 ```
