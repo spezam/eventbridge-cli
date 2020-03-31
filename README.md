@@ -48,7 +48,7 @@ GLOBAL OPTIONS:
    --profile value, -p value       AWS profile (default: "default") [$AWS_PROFILE]
    --region value, -r value        AWS region [$AWS_DEFAULT_REGION]
    --eventbusname value, -b value  EventBridge Bus Name (default: "default")
-   --eventpattern value, -e value  EventBridge event pattern (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
+   --eventpattern value, -e value  EventBridge event pattern. If prefixed with 'file://', a file will be used (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
    --prettyjson, -j                Pretty JSON output (default: false)
    --help, -h                      show help (default: false)
    --version, -v                   print the version (default: false)
