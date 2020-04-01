@@ -1,0 +1,13 @@
+{
+    "source": [
+        "delta"
+    ],
+    "detail": {
+        "channel": [
+            "web"
+        ]
+    },
+    "detail-type": [
+        "poc.succeeded"
+    ]
+}
