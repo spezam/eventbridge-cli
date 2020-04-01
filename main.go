@@ -52,7 +52,7 @@ func run(c *cli.Context) error {
 	// create temporary eventbridge event rule
 	eventpattern := c.String("eventpattern")
 	if strings.HasPrefix(c.String("eventpattern"), "file://") {
-		eventpattern, err = fromFile(c.String("eventpattern"))
+		eventpattern, err = dataFromFile(c.String("eventpattern"))
 		if err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ func newAWSConfig(profile, region string) (aws.Config, error) {
 	return cfg, nil
 }
 
-func fromFile(path string) (string, error) {
+func dataFromFile(path string) (string, error) {
 	f := strings.Replace(path, "file://", "", -1)
 	e, err := ioutil.ReadFile(f)
 	if err != nil {
