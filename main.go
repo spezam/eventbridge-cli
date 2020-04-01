@@ -51,8 +51,8 @@ func run(c *cli.Context) error {
 
 	// create temporary eventbridge event rule
 	eventpattern := c.String("eventpattern")
-	if strings.HasPrefix(c.String("eventpattern"), "file://") {
-		eventpattern, err = dataFromFile(c.String("eventpattern"))
+	if strings.HasPrefix(eventpattern, "file://") {
+		eventpattern, err = dataFromFile(eventpattern)
 		if err != nil {
 			return err
 		}
