@@ -72,7 +72,7 @@ eventbridge-cli -p myawsprofile -j \
 # with event pattern from file in testdata/eventpattern.json
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
-   -e file://testdata/eventpattern.json
+	-e file://testdata/eventpattern.json
 ```
 
 ![screenshot](assets/screenshot.png)
