@@ -22,7 +22,7 @@ wget https://github.com/spezam/eventbridge-cli/releases/download/<version>/event
 tar xvfz eventbridge-cli_<version>_darwin_amd64.tar.gz
 mv eventbridge-cli /somewhere/in/PATH
 ```
-###or build from source:
+### or build from source:
 ```
 go build
 ```
@@ -48,7 +48,7 @@ GLOBAL OPTIONS:
    --profile value, -p value       AWS profile (default: "default") [$AWS_PROFILE]
    --region value, -r value        AWS region [$AWS_DEFAULT_REGION]
    --eventbusname value, -b value  EventBridge Bus Name (default: "default")
-   --eventpattern value, -e value  EventBridge event pattern (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
+   --eventpattern value, -e value  EventBridge event pattern. If prefixed with 'file://', a file will be used (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
    --prettyjson, -j                Pretty JSON output (default: false)
    --help, -h                      show help (default: false)
    --version, -v                   print the version (default: false)
@@ -64,10 +64,15 @@ AWS_PROFILE=myawsprofile AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
 eventbridge-cli --profile myawsprofile
 eventbridge-cli --profile myawsprofile --region eu-north-1
 
-# full example - with event pattern
+# with event pattern
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
+
+# with event pattern from file in testdata/eventpattern.json
+eventbridge-cli -p myawsprofile -j \
+	-b fishnchips-eventbus \
+	-e file://testdata/eventpattern.json
 ```
 
 ![screenshot](assets/screenshot.png)
