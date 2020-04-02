@@ -83,20 +83,18 @@ func run(c *cli.Context) error {
 	}
 	log.Printf("linked EventBus to SQS...")
 
-	// poll SQS queue undefinitely
-	breaker := make(chan struct{})
-	go sqsClient.pollQueue(c.Context, breaker, c.Bool("prettyjson"))
-
 	// wait for a SIGINT (ie. CTRL-C)
 	// run cleanup when signal is received
 	signalChan := make(chan os.Signal, 1)
-	cleanupDone := make(chan struct{})
 	signal.Notify(signalChan, os.Interrupt)
+	// poll SQS queue undefinitely
+	go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
+
+	cleanupDone := make(chan struct{})
 	go func() {
 		<-signalChan
 
 		log.Printf("received an interrupt, cleaning up...")
-		breaker <- struct{}{}
 
 		log.Printf("removing EventBus target...")
 		ebClient.removeTarget(c.Context)
