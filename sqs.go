@@ -99,6 +99,7 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 				log.Printf("sqs.ReceiveMessage error: %s", err)
 				continue
 			}
+			// handle all other errors
 			if err != nil {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
 				return
