@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -93,10 +94,14 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 				WaitTimeSeconds:       aws.Int64(5),
 				MessageAttributeNames: []string{"All"},
 			}).Send(ctx)
+			// handle recovery from 'dial tcp' errors
+			if err != nil && strings.Contains(err.Error(), "dial tcp") {
+				log.Printf("sqs.ReceiveMessage error: %s", err)
+				continue
+			}
 			if err != nil {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
-				// continue, to handle 'dial tcp' issues
-				continue
+				return
 			}
 
 			if len(resp.Messages) == 0 {
