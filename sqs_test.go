@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -180,10 +181,10 @@ func Test_deleteQueue(t *testing.T) {
 func Test_pollQueueCancel(t *testing.T) {
 	t.Run("stopping poller", func(t *testing.T) {
 		client := sqsClient{}
-		breaker := make(chan struct{})
+		signalChan := make(chan os.Signal, 1)
 
-		go client.pollQueue(context.Background(), breaker, false)
-		breaker <- struct{}{}
+		go client.pollQueue(context.Background(), signalChan, false)
+		signalChan <- os.Interrupt
 	})
 }
 
@@ -236,16 +237,16 @@ func Test_pollQueue(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			breaker := make(chan struct{})
+			signalChan := make(chan os.Signal, 1)
 			client := &sqsClient{
 				client:   test.client,
 				queueURL: "https://localhost",
 			}
 
-			go client.pollQueue(context.Background(), breaker, test.prettyJSON)
+			go client.pollQueue(context.Background(), signalChan, test.prettyJSON)
 
 			time.Sleep(2 * time.Second)
-			breaker <- struct{}{}
+			signalChan <- os.Interrupt
 		})
 	}
 }
