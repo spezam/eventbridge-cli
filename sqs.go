@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -73,16 +75,17 @@ func (s *sqsClient) deleteQueue(ctx context.Context) error {
 	return err
 }
 
-func (s *sqsClient) pollQueue(ctx context.Context, breaker <-chan struct{}, prettyJSON bool) error {
+func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, prettyJSON bool) {
 	log.Printf("polling queue %s ...", s.queueURL)
 	log.Printf("press ctr+c to stop")
+	defer close(signalChan)
 
 	for {
 		// goroutine
 		select {
-		case <-breaker:
+		case <-signalChan:
 			log.Printf("stopping poller...")
-			return nil
+			return
 
 		default:
 			resp, err := s.client.ReceiveMessageRequest(&sqs.ReceiveMessageInput{
@@ -91,9 +94,15 @@ func (s *sqsClient) pollQueue(ctx context.Context, breaker <-chan struct{}, pret
 				WaitTimeSeconds:       aws.Int64(5),
 				MessageAttributeNames: []string{"All"},
 			}).Send(ctx)
+			// handle recovery from 'dial tcp' errors
+			if err != nil && strings.Contains(err.Error(), "dial tcp") {
+				log.Printf("sqs.ReceiveMessage error: %s", err)
+				continue
+			}
+			// handle all other errors
 			if err != nil {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
-				return err
+				return
 			}
 
 			if len(resp.Messages) == 0 {
@@ -111,7 +120,7 @@ func (s *sqsClient) pollQueue(ctx context.Context, breaker <-chan struct{}, pret
 					var j map[string]interface{}
 					err := json.Unmarshal([]byte(*m.Body), &j)
 					if err != nil {
-						return err
+						return
 					}
 
 					f := colorjson.NewFormatter()
