@@ -12,6 +12,7 @@ EventBus --> EventBrige Rule --> SQS <-- poller
 Features:
 - Listen to Event Bus messages
 - Filter messages by event pattern
+- Read event pattern from cli or file
 - Authentication via profile or env variables
 - Pretty JSON output
 - ...
