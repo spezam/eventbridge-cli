@@ -26,10 +26,11 @@ func main() {
 		Version: "1.1.0",
 		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
-			&cli.Author{Name: "matteo ridolfi"},
+			{Name: "matteo ridolfi", Email: "spezam@gmail.com"},
 		},
-		Action: run,
-		Flags:  flags,
+		Action:   run,
+		Flags:    flags,
+		Commands: commands,
 	}
 
 	err := app.Run(os.Args)
@@ -83,17 +84,10 @@ func run(c *cli.Context) error {
 	}
 	log.Printf("linked EventBus to SQS...")
 
-	// wait for a SIGINT (ie. CTRL-C)
-	// run cleanup when signal is received
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	// poll SQS queue undefinitely
-	go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
-
-	cleanupDone := make(chan struct{})
-	go func() {
-		<-signalChan
-
+	// switch between ci and standard modes
+	switch c.Command.Name {
+	case "ci":
+		log.Printf("in ci mode")
 		log.Printf("received an interrupt, cleaning up...")
 
 		log.Printf("removing EventBus target...")
@@ -105,9 +99,33 @@ func run(c *cli.Context) error {
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
 		ebClient.deleteRule(c.Context)
 
-		close(cleanupDone)
-	}()
-	<-cleanupDone
+	default:
+		// wait for a SIGINT (ie. CTRL-C)
+		// run cleanup when signal is received
+		signalChan := make(chan os.Signal, 1)
+		signal.Notify(signalChan, os.Interrupt)
+		// poll SQS queue undefinitely
+		go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
+
+		cleanupDone := make(chan struct{})
+		go func() {
+			<-signalChan
+
+			log.Printf("received an interrupt, cleaning up...")
+
+			log.Printf("removing EventBus target...")
+			ebClient.removeTarget(c.Context)
+
+			log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
+			sqsClient.deleteQueue(c.Context)
+
+			log.Printf("deleting temporary EventBus rule %s...", ruleArn)
+			ebClient.deleteRule(c.Context)
+
+			close(cleanupDone)
+		}()
+		<-cleanupDone
+	}
 
 	return nil
 }
