@@ -146,59 +146,68 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 	}
 }
 
-func (s *sqsClient) pollQueueCI(ctx context.Context, breaker chan<- struct{}, prettyJSON bool, timeout int64) error {
+func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan struct{}, prettyJSON bool, timeout int64) {
 	log.Printf("polling queue %s ...", s.queueURL)
+	defer close(signalChan)
 
 	for {
-		resp, err := s.client.ReceiveMessageRequest(&sqs.ReceiveMessageInput{
-			QueueUrl:              aws.String(s.queueURL),
-			MaxNumberOfMessages:   aws.Int64(10),
-			WaitTimeSeconds:       aws.Int64(5),
-			MessageAttributeNames: []string{"All"},
-		}).Send(ctx)
-		if err != nil {
-			log.Printf("sqs.ReceiveMessage error: %s", err)
-			return err
-		}
+		// goroutine
+		select {
+		case <-signalChan:
+			log.Printf("stopping poller...")
+			return
 
-		if len(resp.Messages) == 0 {
-			continue
-		}
+		default:
+			resp, err := s.client.ReceiveMessageRequest(&sqs.ReceiveMessageInput{
+				QueueUrl:              aws.String(s.queueURL),
+				MaxNumberOfMessages:   aws.Int64(10),
+				WaitTimeSeconds:       aws.Int64(5),
+				MessageAttributeNames: []string{"All"},
+			}).Send(ctx)
+			if err != nil {
+				log.Printf("sqs.ReceiveMessage error: %s", err)
+				return
+			}
 
-		entries := []sqs.DeleteMessageBatchRequestEntry{}
-		for _, m := range resp.Messages {
-			entries = append(entries, sqs.DeleteMessageBatchRequestEntry{
-				Id:            m.MessageId,
-				ReceiptHandle: m.ReceiptHandle,
-			})
-
-			if prettyJSON {
-				var j map[string]interface{}
-				err := json.Unmarshal([]byte(*m.Body), &j)
-				if err != nil {
-					return err
-				}
-
-				f := colorjson.NewFormatter()
-				f.Indent = 2
-				pj, _ := f.Marshal(j)
-
-				log.Println(string(pj))
+			if len(resp.Messages) == 0 {
 				continue
 			}
 
-			log.Printf("%s", *m.Body)
-		}
+			entries := []sqs.DeleteMessageBatchRequestEntry{}
+			for _, m := range resp.Messages {
+				entries = append(entries, sqs.DeleteMessageBatchRequestEntry{
+					Id:            m.MessageId,
+					ReceiptHandle: m.ReceiptHandle,
+				})
 
-		// cleanup messages
-		_, err = s.client.DeleteMessageBatchRequest(&sqs.DeleteMessageBatchInput{
-			QueueUrl: aws.String(s.queueURL),
-			Entries:  entries,
-		}).Send(ctx)
-		if err != nil {
-			log.Printf("sqs.DeleteMessageBatch error: %s", err)
-		}
+				if prettyJSON {
+					var j map[string]interface{}
+					err := json.Unmarshal([]byte(*m.Body), &j)
+					if err != nil {
+						return
+					}
 
-		breaker <- struct{}{}
+					f := colorjson.NewFormatter()
+					f.Indent = 2
+					pj, _ := f.Marshal(j)
+
+					log.Println(string(pj))
+					continue
+				}
+
+				log.Printf("%s", *m.Body)
+			}
+
+			// cleanup messages
+			_, err = s.client.DeleteMessageBatchRequest(&sqs.DeleteMessageBatchInput{
+				QueueUrl: aws.String(s.queueURL),
+				Entries:  entries,
+			}).Send(ctx)
+			if err != nil {
+				log.Printf("sqs.DeleteMessageBatch error: %s", err)
+			}
+
+			return
+		}
 	}
 }
