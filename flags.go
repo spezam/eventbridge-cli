@@ -39,3 +39,18 @@ var flags = []cli.Flag{
 		Usage:   "Pretty JSON output",
 	},
 }
+
+var flagsCI = []cli.Flag{
+	&cli.Int64Flag{
+		Name:    "timeout",
+		Aliases: []string{"t"},
+		Usage:   "CI timeout in seconds",
+		Value:   10,
+	},
+	&cli.StringFlag{
+		Name:     "event",
+		Aliases:  []string{"ev"},
+		Usage:    "Input event",
+		Required: true,
+	},
+}
