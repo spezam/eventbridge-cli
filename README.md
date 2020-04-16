@@ -15,6 +15,7 @@ Features:
 - Read event pattern from cli or file
 - Authentication via profile or env variables
 - Pretty JSON output
+- CI mode
 - ...
 
 ### Install from releases binary:
@@ -28,6 +29,7 @@ mv eventbridge-cli /somewhere/in/PATH
 go build
 ```
 
+## Standard mode
 ### Flags:
 ```
 NAME:
@@ -43,6 +45,7 @@ AUTHOR:
    matteo ridolfi
 
 COMMANDS:
+   ci       AWS EventBridge cli - CI mode
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
@@ -62,8 +65,8 @@ AWS_PROFILE=myawsprofile eventbridge-cli
 AWS_PROFILE=myawsprofile AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
 
 # with cli flags
-eventbridge-cli --profile myawsprofile
-eventbridge-cli --profile myawsprofile --region eu-north-1
+eventbridge-cli -p myawsprofile
+eventbridge-cli -p myawsprofile -r eu-north-1
 
 # with event pattern
 eventbridge-cli -p myawsprofile -j \
@@ -77,6 +80,41 @@ eventbridge-cli -p myawsprofile -j \
 ```
 
 ![screenshot](assets/screenshot.png)
+
+## CI mode
+CI mode can be used to perform integration testing in an automated way.
+
+Note: global flags are position sensitive and can't be used under 'ci' command. For example: `eventbridge-cli -j ci -t 20`
+
+### Flags:
+```
+NAME:
+   eventbridge-cli ci - AWS EventBridge cli - CI mode
+
+USAGE:
+   eventbridge-cli ci [command options] [arguments...]
+
+DESCRIPTION:
+   run eventbridge-cli in CI mode
+
+OPTIONS:
+   --timeout value, -t value  CI timeout in seconds (default: 12)
+   --inputevent value, -i value  Input event. If omitted expected from other sources
+   --help, -h                 show help (default: false)
+```
+
+### Usage example:
+```sh
+# event pattern and input event from cli
+eventbridge-cli -p myawsprofile --event '{"source": ["delta"]}' -j ci -i '{"source":"delta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
+
+# event pattern and input event from file
+eventbridge-cli -p myawsprofile -e file://testdata/eventpattern.json -j ci -i file://testdata/event_ci_success.json
+
+# failing ci
+eventbridge-cli -p myawsprofile -e file://testdata/eventpattern.json -j ci -i file://testdata/event_ci_fail.json
+
+```
 
 ### Content-based Filtering with Event Patterns reference:
 https://docs.aws.amazon.com/eventbridge/latest/userguide/content-filtering-with-event-patterns.html
