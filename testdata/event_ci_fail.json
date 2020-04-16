@@ -1,0 +1,5 @@
+{
+    "source": "alpha",
+    "detail": "{\"channel\": \"web\"}",
+    "detail-type": "poc.succeeded"
+}
