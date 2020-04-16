@@ -45,12 +45,12 @@ var flagsCI = []cli.Flag{
 		Name:    "timeout",
 		Aliases: []string{"t"},
 		Usage:   "CI timeout in seconds",
-		Value:   10,
+		Value:   12,
 	},
 	&cli.StringFlag{
-		Name:     "event",
-		Aliases:  []string{"ev"},
-		Usage:    "Input event",
-		Required: true,
+		Name:    "inputevent",
+		Aliases: []string{"i"},
+		Usage:   "Input event. If omitted expected from other sources",
+		//Required: true,
 	},
 }
