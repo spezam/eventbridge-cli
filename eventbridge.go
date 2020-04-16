@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -52,12 +53,45 @@ func (e *eventbridgeClient) deleteRule(ctx context.Context) error {
 	return err
 }
 
+func (e *eventbridgeClient) putEvent(ctx context.Context, event string) error {
+	log.Printf("putting event: %s", event)
+	ev := struct {
+		Source     string `json:"source"`
+		Detail     string `json:"detail"`
+		DetailType string `json:"detail-type"`
+	}{}
+	err := json.Unmarshal([]byte(event), &ev)
+	if err != nil {
+		return err
+	}
+
+	resp, err := e.client.PutEventsRequest(&eventbridge.PutEventsInput{
+		Entries: []eventbridge.PutEventsRequestEntry{
+			{
+				Source:       aws.String(ev.Source),
+				Detail:       aws.String(ev.Detail),
+				DetailType:   aws.String(ev.DetailType),
+				EventBusName: aws.String(e.eventBusName),
+			},
+		},
+	}).Send(ctx)
+	if err != nil {
+		return err
+	}
+
+	if *resp.FailedEntryCount > 0 {
+		return fmt.Errorf("%s", *resp.Entries[0].ErrorMessage)
+	}
+
+	return nil
+}
+
 func (e *eventbridgeClient) putTarget(ctx context.Context, sqsArn string) error {
 	_, err := e.client.PutTargetsRequest(&eventbridge.PutTargetsInput{
 		Rule:         aws.String(namespace + "-" + runID),
 		EventBusName: aws.String(e.eventBusName),
 		Targets: []eventbridge.Target{
-			eventbridge.Target{
+			{
 				Id:  aws.String(namespace + "-" + runID),
 				Arn: aws.String(sqsArn),
 			},
