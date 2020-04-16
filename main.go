@@ -165,21 +165,14 @@ func run(c *cli.Context) error {
 		}
 
 	default:
-		// channels
 		signalChan := make(chan os.Signal)
-		//cleanupDone := make(chan struct{}) // resources cleanup
 		signal.Notify(signalChan, os.Interrupt)
 		// poll SQS queue undefinitely
 		go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
 
-		//go func() {
 		// wait for a SIGINT (ie. CTRL-C)
 		<-signalChan
 		log.Printf("received an interrupt, cleaning up...")
-
-		//	cleanupDone <- struct{}{}
-		//}()
-		//<-cleanupDone
 	}
 
 	return nil
