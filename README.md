@@ -106,14 +106,29 @@ OPTIONS:
 ### Usage example:
 ```sh
 # event pattern and input event from cli
-eventbridge-cli -p myawsprofile --event '{"source": ["delta"]}' -j ci -i '{"source":"delta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
+eventbridge-cli -p myawsprofile -j \
+   -e '{"source": ["delta"]}' ci \
+   -i '{"source":"delta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
+
+# specify timeout
+eventbridge-cli -p myawsprofile -j \
+   -e '{"source": ["delta"]}' ci \
+   -i '{"source":"delta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}' \
+   -t 20
 
 # event pattern and input event from file
-eventbridge-cli -p myawsprofile -e file://testdata/eventpattern.json -j ci -i file://testdata/event_ci_success.json
+eventbridge-cli -p myawsprofile -j \
+   -e file://testdata/eventpattern.json ci \
+   -i file://testdata/event_ci_success.json
 
-# failing ci
-eventbridge-cli -p myawsprofile -e file://testdata/eventpattern.json -j ci -i file://testdata/event_ci_fail.json
+# event pattern and input event from file - failing CI
+eventbridge-cli -p myawsprofile -j \
+   -e file://testdata/eventpattern.json ci \
+   -i file://testdata/event_ci_fail.json
 
+# listen to events from other sources (Lambda, aws cli, SAM, ...)
+eventbridge-cli -p myawsprofile -j \
+   -e file://testdata/eventpattern.json ci
 ```
 
 ### Content-based Filtering with Event Patterns reference:
