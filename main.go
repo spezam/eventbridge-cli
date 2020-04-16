@@ -73,126 +73,113 @@ func run(c *cli.Context) error {
 	sqsClient := newSQSClient(awsCfg, accountID, queueName)
 
 	// SQS queue
-	err = sqsClient.createQueue(c.Context, ruleArn)
-	if err != nil {
+	if err := sqsClient.createQueue(c.Context, ruleArn); err != nil {
+		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
+		_ = ebClient.deleteRule(c.Context)
+
 		return err
 	}
 	log.Printf("created temporary SQS queue with URL: %s", sqsClient.queueURL)
 
 	// EventBus --> SQS
-	err = ebClient.putTarget(c.Context, sqsClient.arn)
-	if err != nil {
+	if err := ebClient.putTarget(c.Context, sqsClient.arn); err != nil {
+		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
+		_ = sqsClient.deleteQueue(c.Context)
+
+		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
+		_ = ebClient.deleteRule(c.Context)
+
 		return err
 	}
-	log.Printf("linked EventBus to SQS...")
+	log.Printf("linked EventBus --> SQS...")
 
-	// switch between ci and standard modes
+	// defer cleanup resources
+	defer func() {
+		log.Printf("removing EventBus target...")
+		_ = ebClient.removeTarget(c.Context)
+
+		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
+		_ = sqsClient.deleteQueue(c.Context)
+
+		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
+		_ = ebClient.deleteRule(c.Context)
+	}()
+
+	// switch between CI and standard modes
 	switch c.Command.Name {
 	case "ci":
-		log.Printf("in ci mode")
+		log.Printf("CI mode")
 
+		// channels
+		signalChan := make(chan os.Signal, 1) // SQS polling
+		timedOut := make(chan struct{}, 1)    // timeout
+		cleanupDone := make(chan struct{})    // resources cleanup
+		signal.Notify(signalChan, os.Interrupt)
 		// poll SQS queue undefinitely
-		signalChan := make(chan struct{})
-		go sqsClient.pollQueueCI(c.Context, breaker, c.Bool("prettyjson"), c.Int64("timeout"))
+		go sqsClient.pollQueueCI(c.Context, signalChan, c.Bool("prettyjson"), c.Int64("timeout"))
 
-		// put event
-		time.Sleep(2 * time.Second)
-		err = ebClient.putEvent(c.Context, c.String("event"))
-		if err != nil {
-			log.Printf("removing EventBus target...")
-			ebClient.removeTarget(c.Context)
+		// read input event from cli or file
+		event := c.String("inputevent")
+		if event != "" {
+			if strings.HasPrefix(event, "file://") {
+				event, err = dataFromFile(event)
+				if err != nil {
+					return err
+				}
+			}
 
-			log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-			sqsClient.deleteQueue(c.Context)
-
-			log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-			ebClient.deleteRule(c.Context)
-
-			return err
+			// put event
+			//time.Sleep(2 * time.Second) // might be needed if too fast
+			if err := ebClient.putEvent(c.Context, event); err != nil {
+				return err
+			}
 		}
 
-		// wait for timeout or response
-		done := make(chan bool)
-		timedOut := make(chan bool)
-		cleanupDone := make(chan struct{})
 		go func() {
 			select {
 			case <-time.After(time.Duration(c.Int64("timeout")) * time.Second):
 				log.Printf("%d seconds timeout reached", c.Int64("timeout"))
-				log.Printf("removing EventBus target...")
-				ebClient.removeTarget(c.Context)
 
-				log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-				sqsClient.deleteQueue(c.Context)
-
-				log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-				ebClient.deleteRule(c.Context)
-
-				timedOut <- true
+				signalChan <- os.Interrupt
+				timedOut <- struct{}{}
 
 			case <-signalChan:
 				log.Printf("message received")
 
-				log.Printf("removing EventBus target...")
-				ebClient.removeTarget(c.Context)
-
-				log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-				sqsClient.deleteQueue(c.Context)
-
-				log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-				ebClient.deleteRule(c.Context)
-
-				done <- false
+				close(timedOut)
 			}
 
 			cleanupDone <- struct{}{}
 		}()
 		<-cleanupDone
 
+		// check if CI timed out
 		select {
-		case <-done:
+		case _, ok := <-timedOut:
+			if ok {
+				return fmt.Errorf("CI failed - didn't receive any event")
+			}
+
+			log.Printf("CI successful")
 			return nil
-		case <-timedOut:
-			return fmt.Errorf("CI failed")
 		}
 
-		log.Printf("received an interrupt, cleaning up...")
-
-		log.Printf("removing EventBus target...")
-		ebClient.removeTarget(c.Context)
-
-		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-		sqsClient.deleteQueue(c.Context)
-
-		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		ebClient.deleteRule(c.Context)
-
 	default:
-		// wait for a SIGINT (ie. CTRL-C)
-		// run cleanup when signal is received
-		signalChan := make(chan os.Signal, 1)
+		// channels
+		signalChan := make(chan os.Signal)
+		//cleanupDone := make(chan struct{}) // resources cleanup
 		signal.Notify(signalChan, os.Interrupt)
 		// poll SQS queue undefinitely
 		go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
 
-		cleanupDone := make(chan struct{})
-		go func() {
-			<-signalChan
+		//go func() {
+		// wait for a SIGINT (ie. CTRL-C)
+		<-signalChan
+		log.Printf("received an interrupt, cleaning up...")
 
-			log.Printf("received an interrupt, cleaning up...")
-
-			log.Printf("removing EventBus target...")
-			ebClient.removeTarget(c.Context)
-
-			log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-			sqsClient.deleteQueue(c.Context)
-
-			log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-			ebClient.deleteRule(c.Context)
-
-			close(cleanupDone)
-		}()
-		<-cleanupDone
+		//	cleanupDone <- struct{}{}
+		//}()
+		//<-cleanupDone
 	}
 
 	return nil
