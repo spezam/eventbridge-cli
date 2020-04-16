@@ -146,7 +146,7 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 	}
 }
 
-func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan struct{}, prettyJSON bool, timeout int64) {
+func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, prettyJSON bool, timeout int64) {
 	log.Printf("polling queue %s ...", s.queueURL)
 	defer close(signalChan)
 
@@ -191,11 +191,11 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan struct{}, p
 					f.Indent = 2
 					pj, _ := f.Marshal(j)
 
-					log.Println(string(pj))
+					log.Printf("received event: %s", string(pj))
 					continue
 				}
 
-				log.Printf("%s", *m.Body)
+				log.Printf("received event: %s", *m.Body)
 			}
 
 			// cleanup messages
