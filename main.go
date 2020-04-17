@@ -95,11 +95,11 @@ func run(c *cli.Context) error {
 
 	// defer cleanup resources
 	defer func() {
-		log.Printf("removing EventBus target...")
-		_ = ebClient.removeTarget(c.Context)
-
 		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
 		_ = sqsClient.deleteQueue(c.Context)
+
+		log.Printf("removing EventBus target...")
+		_ = ebClient.removeTarget(c.Context)
 
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
 		_ = ebClient.deleteRule(c.Context)
@@ -111,9 +111,7 @@ func run(c *cli.Context) error {
 		log.Printf("CI mode")
 
 		// channels
-		signalChan := make(chan os.Signal, 1) // SQS polling
-		timedOut := make(chan struct{}, 1)    // timeout
-		cleanupDone := make(chan struct{})    // resources cleanup
+		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt)
 		// poll SQS queue undefinitely
 		go sqsClient.pollQueueCI(c.Context, signalChan, c.Bool("prettyjson"), c.Int64("timeout"))
@@ -135,32 +133,16 @@ func run(c *cli.Context) error {
 			}
 		}
 
-		go func() {
-			select {
-			case <-time.After(time.Duration(c.Int64("timeout")) * time.Second):
-				log.Printf("%d seconds timeout reached", c.Int64("timeout"))
-
-				signalChan <- os.Interrupt
-				timedOut <- struct{}{}
-
-			case <-signalChan:
-				log.Printf("message received")
-
-				close(timedOut)
-			}
-
-			cleanupDone <- struct{}{}
-		}()
-		<-cleanupDone
-
-		// check if CI timed out
+		//go func() {
 		select {
-		case _, ok := <-timedOut:
-			if ok {
-				return fmt.Errorf("CI failed - didn't receive any event")
-			}
+		case <-time.After(time.Duration(c.Int64("timeout")) * time.Second):
+			log.Printf("%d seconds timeout reached", c.Int64("timeout"))
 
-			log.Printf("CI successful")
+			signalChan <- os.Interrupt
+			return fmt.Errorf("CI failed - didn't receive any event")
+
+		case <-signalChan:
+			log.Printf("CI successful - message received")
 			return nil
 		}
 
