@@ -110,7 +110,6 @@ func run(c *cli.Context) error {
 	case "ci":
 		log.Printf("CI mode")
 
-		// channels
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt)
 		// poll SQS queue undefinitely
@@ -133,7 +132,6 @@ func run(c *cli.Context) error {
 			}
 		}
 
-		//go func() {
 		select {
 		case <-time.After(time.Duration(c.Int64("timeout")) * time.Second):
 			log.Printf("%d seconds timeout reached", c.Int64("timeout"))
@@ -147,7 +145,7 @@ func run(c *cli.Context) error {
 		}
 
 	default:
-		signalChan := make(chan os.Signal)
+		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt)
 		// poll SQS queue undefinitely
 		go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
