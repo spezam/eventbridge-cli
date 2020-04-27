@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/TylerBrock/colorjson"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -97,6 +98,9 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 			// handle recovery from 'dial tcp' errors
 			if err != nil && strings.Contains(err.Error(), "dial tcp") {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
+
+				// backoff
+				time.Sleep(10 * time.Second)
 				continue
 			}
 			// handle all other errors
