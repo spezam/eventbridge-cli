@@ -159,8 +159,7 @@ func run(c *cli.Context) error {
 }
 
 func newAWSConfig(profile, region string) (aws.Config, error) {
-	external.DefaultSharedConfigProfile = profile
-	cfg, err := external.LoadDefaultAWSConfig()
+	cfg, err := external.LoadDefaultAWSConfig(external.WithSharedConfigProfile(profile))
 	if err != nil {
 		return aws.Config{}, err
 	}
