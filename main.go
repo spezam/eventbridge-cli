@@ -26,7 +26,7 @@ func main() {
 		Version: "1.1.0",
 		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
-			&cli.Author{Name: "matteo ridolfi"},
+			{Name: "matteo ridolfi", Email: "spezam@gmail.com"},
 		},
 		Action: run,
 		Flags:  flags,
@@ -70,44 +70,46 @@ func run(c *cli.Context) error {
 	sqsClient := newSQSClient(awsCfg, accountID, queueName)
 
 	// SQS queue
-	err = sqsClient.createQueue(c.Context, ruleArn)
-	if err != nil {
+	if err := sqsClient.createQueue(c.Context, ruleArn); err != nil {
+		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
+		_ = ebClient.deleteRule(c.Context)
+
 		return err
 	}
 	log.Printf("created temporary SQS queue with URL: %s", sqsClient.queueURL)
 
 	// EventBus --> SQS
-	err = ebClient.putTarget(c.Context, sqsClient.arn)
-	if err != nil {
+	if err := ebClient.putTarget(c.Context, sqsClient.arn); err != nil {
+		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
+		_ = sqsClient.deleteQueue(c.Context)
+
+		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
+		_ = ebClient.deleteRule(c.Context)
+
 		return err
 	}
-	log.Printf("linked EventBus to SQS...")
+	log.Printf("linked EventBus --> SQS...")
 
-	// wait for a SIGINT (ie. CTRL-C)
-	// run cleanup when signal is received
+	// defer cleanup resources
+	defer func() {
+		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
+		_ = sqsClient.deleteQueue(c.Context)
+
+		log.Printf("removing EventBus target...")
+		_ = ebClient.removeTarget(c.Context)
+
+		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
+		_ = ebClient.deleteRule(c.Context)
+	}()
+
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 	// poll SQS queue undefinitely
 	go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
 
-	cleanupDone := make(chan struct{})
-	go func() {
-		<-signalChan
-
-		log.Printf("received an interrupt, cleaning up...")
-
-		log.Printf("removing EventBus target...")
-		ebClient.removeTarget(c.Context)
-
-		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-		sqsClient.deleteQueue(c.Context)
-
-		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		ebClient.deleteRule(c.Context)
-
-		close(cleanupDone)
-	}()
-	<-cleanupDone
+	// wait for a SIGINT (ie. CTRL-C)
+	<-signalChan
+	log.Printf("received an interrupt, cleaning up...")
 
 	return nil
 }
