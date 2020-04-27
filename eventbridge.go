@@ -57,7 +57,7 @@ func (e *eventbridgeClient) putTarget(ctx context.Context, sqsArn string) error 
 		Rule:         aws.String(namespace + "-" + runID),
 		EventBusName: aws.String(e.eventBusName),
 		Targets: []eventbridge.Target{
-			eventbridge.Target{
+			{
 				Id:  aws.String(namespace + "-" + runID),
 				Arn: aws.String(sqsArn),
 			},
