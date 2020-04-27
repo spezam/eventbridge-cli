@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/urfave/cli/v2"
 )
 
@@ -13,13 +12,13 @@ var flags = []cli.Flag{
 		Aliases: []string{"p"},
 		Usage:   "AWS profile",
 		Value:   "default",
-		EnvVars: []string{external.AWSProfileEnvVar},
+		EnvVars: []string{"AWS_PROFILE"},
 	},
 	&cli.StringFlag{
 		Name:    "region",
 		Aliases: []string{"r"},
 		Usage:   "AWS region",
-		EnvVars: []string{external.AWSDefaultRegionEnvVar},
+		EnvVars: []string{"AWS_REGION"},
 	},
 	&cli.StringFlag{
 		Name:    "eventbusname",
