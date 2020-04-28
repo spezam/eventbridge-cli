@@ -28,7 +28,7 @@ func main() {
 		Version: "1.1.0",
 		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
-			{Name: "matteo ridolfi", Email: "spezam@gmail.com"},
+			{Name: "matteo ridolfi"},
 		},
 		Action:   run,
 		Flags:    flags,
