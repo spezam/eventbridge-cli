@@ -3,11 +3,13 @@ package main
 // EventBus --> EventBrige Rule --> SQS <-- poller
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
@@ -23,13 +25,14 @@ var (
 func main() {
 	app := &cli.App{
 		Name:    namespace,
-		Version: "1.2.1",
+		Version: "1.3.0",
 		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
-			{Name: "matteo ridolfi", Email: "spezam@gmail.com"},
+			{Name: "matteo ridolfi"},
 		},
-		Action: run,
-		Flags:  flags,
+		Action:   run,
+		Flags:    flags,
+		Commands: commands,
 	}
 
 	err := app.Run(os.Args)
@@ -102,21 +105,61 @@ func run(c *cli.Context) error {
 		_ = ebClient.deleteRule(c.Context)
 	}()
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	// poll SQS queue undefinitely
-	go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
+	// switch between CI and standard modes
+	switch c.Command.Name {
+	case "ci":
+		log.Printf("CI mode")
 
-	// wait for a SIGINT (ie. CTRL-C)
-	<-signalChan
-	log.Printf("received an interrupt, cleaning up...")
+		signalChan := make(chan os.Signal, 1)
+		signal.Notify(signalChan, os.Interrupt)
+		// poll SQS queue undefinitely
+		go sqsClient.pollQueueCI(c.Context, signalChan, c.Bool("prettyjson"), c.Int64("timeout"))
+
+		// read input event from cli or file
+		event := c.String("inputevent")
+		if event != "" {
+			if strings.HasPrefix(event, "file://") {
+				event, err = dataFromFile(event)
+				if err != nil {
+					return err
+				}
+			}
+
+			// put event
+			//time.Sleep(2 * time.Second) // might be needed if too fast
+			if err := ebClient.putEvent(c.Context, event); err != nil {
+				return err
+			}
+		}
+
+		select {
+		case <-time.After(time.Duration(c.Int64("timeout")) * time.Second):
+			log.Printf("%d seconds timeout reached", c.Int64("timeout"))
+
+			signalChan <- os.Interrupt
+			return fmt.Errorf("CI failed - didn't receive any event")
+
+		case <-signalChan:
+			log.Printf("CI successful - message received")
+			return nil
+		}
+
+	default:
+		signalChan := make(chan os.Signal, 1)
+		signal.Notify(signalChan, os.Interrupt)
+		// poll SQS queue undefinitely
+		go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
+
+		// wait for a SIGINT (ie. CTRL-C)
+		<-signalChan
+		log.Printf("received an interrupt, cleaning up...")
+	}
 
 	return nil
 }
 
 func newAWSConfig(profile, region string) (aws.Config, error) {
-	external.DefaultSharedConfigProfile = profile
-	cfg, err := external.LoadDefaultAWSConfig()
+	cfg, err := external.LoadDefaultAWSConfig(external.WithSharedConfigProfile(profile))
 	if err != nil {
 		return aws.Config{}, err
 	}

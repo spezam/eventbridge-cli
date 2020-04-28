@@ -149,3 +149,69 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 		}
 	}
 }
+
+func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, prettyJSON bool, timeout int64) {
+	log.Printf("polling queue %s ...", s.queueURL)
+	defer close(signalChan)
+
+	for {
+		// goroutine
+		select {
+		case <-signalChan:
+			log.Printf("stopping poller...")
+			return
+
+		default:
+			resp, err := s.client.ReceiveMessageRequest(&sqs.ReceiveMessageInput{
+				QueueUrl:              aws.String(s.queueURL),
+				MaxNumberOfMessages:   aws.Int64(10),
+				WaitTimeSeconds:       aws.Int64(5),
+				MessageAttributeNames: []string{"All"},
+			}).Send(ctx)
+			if err != nil {
+				log.Printf("sqs.ReceiveMessage error: %s", err)
+				return
+			}
+
+			if len(resp.Messages) == 0 {
+				continue
+			}
+
+			entries := []sqs.DeleteMessageBatchRequestEntry{}
+			for _, m := range resp.Messages {
+				entries = append(entries, sqs.DeleteMessageBatchRequestEntry{
+					Id:            m.MessageId,
+					ReceiptHandle: m.ReceiptHandle,
+				})
+
+				if prettyJSON {
+					var j map[string]interface{}
+					err := json.Unmarshal([]byte(*m.Body), &j)
+					if err != nil {
+						return
+					}
+
+					f := colorjson.NewFormatter()
+					f.Indent = 2
+					pj, _ := f.Marshal(j)
+
+					log.Printf("received event: %s", string(pj))
+					continue
+				}
+
+				log.Printf("received event: %s", *m.Body)
+			}
+
+			// cleanup messages
+			_, err = s.client.DeleteMessageBatchRequest(&sqs.DeleteMessageBatchInput{
+				QueueUrl: aws.String(s.queueURL),
+				Entries:  entries,
+			}).Send(ctx)
+			if err != nil {
+				log.Printf("sqs.DeleteMessageBatch error: %s", err)
+			}
+
+			return
+		}
+	}
+}

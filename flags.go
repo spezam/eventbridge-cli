@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/urfave/cli/v2"
 )
 
@@ -13,13 +12,13 @@ var flags = []cli.Flag{
 		Aliases: []string{"p"},
 		Usage:   "AWS profile",
 		Value:   "default",
-		EnvVars: []string{external.AWSProfileEnvVar},
+		EnvVars: []string{"AWS_PROFILE"},
 	},
 	&cli.StringFlag{
 		Name:    "region",
 		Aliases: []string{"r"},
 		Usage:   "AWS region",
-		EnvVars: []string{external.AWSDefaultRegionEnvVar},
+		EnvVars: []string{"AWS_DEFAULT_REGION", "AWS_REGION"},
 	},
 	&cli.StringFlag{
 		Name:    "eventbusname",
@@ -37,5 +36,20 @@ var flags = []cli.Flag{
 		Name:    "prettyjson",
 		Aliases: []string{"j"},
 		Usage:   "Pretty JSON output",
+	},
+}
+
+var flagsCI = []cli.Flag{
+	&cli.Int64Flag{
+		Name:    "timeout",
+		Aliases: []string{"t"},
+		Usage:   "CI timeout in seconds",
+		Value:   12,
+	},
+	&cli.StringFlag{
+		Name:    "inputevent",
+		Aliases: []string{"i"},
+		Usage:   "Input event. If omitted expected from other sources",
+		//Required: true,
 	},
 }
