@@ -125,8 +125,8 @@ func run(c *cli.Context) error {
 				}
 			}
 
-			// put event
 			//time.Sleep(2 * time.Second) // might be needed if too fast
+			// put event
 			if err := ebClient.putEvent(c.Context, event); err != nil {
 				return err
 			}
