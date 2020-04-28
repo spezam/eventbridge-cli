@@ -29,7 +29,7 @@ var flags = []cli.Flag{
 	&cli.StringFlag{
 		Name:    "eventpattern",
 		Aliases: []string{"e"},
-		Usage:   "EventBridge event pattern. If prefixed with 'file://', a file will be used",
+		Usage:   "EventBridge event pattern. Can be prefixed by 'file://'",
 		Value:   fmt.Sprintf(`{"source": [{"anything-but": ["%s"]}]}`, namespace),
 	},
 	&cli.BoolFlag{
@@ -49,7 +49,6 @@ var flagsCI = []cli.Flag{
 	&cli.StringFlag{
 		Name:    "inputevent",
 		Aliases: []string{"i"},
-		Usage:   "Input event. If omitted expected from other sources",
-		//Required: true,
+		Usage:   "Input event. Can be omitted if coming from other sources or prefixed by 'file://'",
 	},
 }

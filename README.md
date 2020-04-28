@@ -30,6 +30,8 @@ GOBIN=$PWD/bin GO111MODULE=on go install github.com/spezam/eventbridge-cli
 ```
 ### or build from source:
 ```
+git clone https://github.com/spezam/eventbridge-cli.git
+cd eventbridge-cli
 go build
 ```
 
@@ -56,7 +58,7 @@ GLOBAL OPTIONS:
    --profile value, -p value       AWS profile (default: "default") [$AWS_PROFILE]
    --region value, -r value        AWS region [$AWS_DEFAULT_REGION]
    --eventbusname value, -b value  EventBridge Bus Name (default: "default")
-   --eventpattern value, -e value  EventBridge event pattern. If prefixed with 'file://', a file will be used (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
+   --eventpattern value, -e value  EventBridge event pattern. Can be prefixed by 'file://' (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
    --prettyjson, -j                Pretty JSON output (default: false)
    --help, -h                      show help (default: false)
    --version, -v                   print the version (default: false)
@@ -89,7 +91,10 @@ eventbridge-cli -p myawsprofile -j \
 CI mode can be used to perform integration testing in an automated way.
 Given an event pattern (global flag -e) and an input event (ci flag -i), this mode verifies the message goes through within timeout (ci flag -t).
 
-Note: global flags are position sensitive and can't be used under 'ci' command. For example: `eventbridge-cli -j ci -t 20`
+Note: global flags are position sensitive and can't be used under 'ci' command. For example:
+```
+eventbridge-cli -j ci -t 20
+```
 
 ### Flags:
 ```
@@ -104,7 +109,7 @@ DESCRIPTION:
 
 OPTIONS:
    --timeout value, -t value  CI timeout in seconds (default: 12)
-   --inputevent value, -i value  Input event. If omitted expected from other sources
+   --inputevent value, -i value  Input event. Can be omitted if coming from other sources or prefixed by 'file://'
    --help, -h                 show help (default: false)
 ```
 
