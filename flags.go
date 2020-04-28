@@ -18,7 +18,7 @@ var flags = []cli.Flag{
 		Name:    "region",
 		Aliases: []string{"r"},
 		Usage:   "AWS region",
-		EnvVars: []string{"AWS_REGION"},
+		EnvVars: []string{"AWS_DEFAULT_REGION", "AWS_REGION"},
 	},
 	&cli.StringFlag{
 		Name:    "eventbusname",
