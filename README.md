@@ -12,7 +12,7 @@ EventBus --> EventBrige Rule --> SQS <-- poller
 Features:
 - Listen to Event Bus messages
 - Filter messages by event pattern
-- Read event pattern from cli or file
+- Read event pattern from cli, file or directly from SAM template
 - Authentication via profile or env variables
 - Pretty JSON output
 - CI mode
@@ -58,7 +58,7 @@ GLOBAL OPTIONS:
    --profile value, -p value       AWS profile (default: "default") [$AWS_PROFILE]
    --region value, -r value        AWS region [$AWS_DEFAULT_REGION]
    --eventbusname value, -b value  EventBridge Bus Name (default: "default")
-   --eventpattern value, -e value  EventBridge event pattern. Can be prefixed by 'file://' (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
+   --eventpattern value, -e value  EventBridge event pattern. Can be prefixed by 'file://' or 'sam://' (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
    --prettyjson, -j                Pretty JSON output (default: false)
    --help, -h                      show help (default: false)
    --version, -v                   print the version (default: false)
@@ -83,6 +83,11 @@ eventbridge-cli -p myawsprofile -j \
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e file://testdata/eventpattern.json
+
+# with event pattern from SAM template, function BetaFunction
+eventbridge-cli -p myawsprofile -j \
+	-b fishnchips-eventbus \
+	-e sam://testdata/template.yaml/BetaFunction
 ```
 
 ![screenshot](assets/screenshot.png)
