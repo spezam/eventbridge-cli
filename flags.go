@@ -29,7 +29,7 @@ var flags = []cli.Flag{
 	&cli.StringFlag{
 		Name:    "eventpattern",
 		Aliases: []string{"e"},
-		Usage:   "EventBridge event pattern. Can be prefixed by 'file://'",
+		Usage:   "EventBridge event pattern. Can be prefixed by 'file://' or 'sam://'",
 		Value:   fmt.Sprintf(`{"source": [{"anything-but": ["%s"]}]}`, namespace),
 	},
 	&cli.BoolFlag{
