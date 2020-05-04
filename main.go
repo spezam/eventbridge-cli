@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -54,12 +53,20 @@ func run(c *cli.Context) error {
 
 	// create temporary eventbridge event rule
 	eventpattern := c.String("eventpattern")
-	if strings.HasPrefix(eventpattern, "file://") {
+	switch {
+	case strings.HasPrefix(eventpattern, "file://"):
 		eventpattern, err = dataFromFile(eventpattern)
 		if err != nil {
 			return err
 		}
+
+	case strings.HasPrefix(eventpattern, "sam://"):
+		eventpattern, err = dataFromSAM(eventpattern)
+		if err != nil {
+			return err
+		}
 	}
+
 	log.Printf("creating temporary rule on bus [%s]: %s", ebClient.eventBusName, eventpattern)
 	ruleArn, err := ebClient.createRule(c.Context, eventpattern)
 	if err != nil {
@@ -170,14 +177,4 @@ func newAWSConfig(profile, region string) (aws.Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func dataFromFile(path string) (string, error) {
-	f := strings.Replace(path, "file://", "", -1)
-	e, err := ioutil.ReadFile(f)
-	if err != nil {
-		return "", err
-	}
-
-	return string(e), nil
 }
