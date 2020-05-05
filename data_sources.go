@@ -27,7 +27,7 @@ type samTemplate struct {
 	} `yaml:"Resources"`
 }
 
-// file://pattern.json
+// file://eventpattern.json
 func dataFromFile(filepath string) (string, error) {
 	file := strings.Replace(filepath, "file://", "", -1)
 
@@ -58,9 +58,9 @@ func dataFromSAM(sampath string) (string, error) {
 
 	// find EventBridgeRule and marshal to JSON
 	var p []byte
-	for _, k := range b.Resources[function].Properties.Events {
-		if k.Type == "EventBridgeRule" {
-			if p, err = json.Marshal(convertMap(k.Properties.Pattern)); err != nil {
+	for _, e := range b.Resources[function].Properties.Events {
+		if e.Type == "EventBridgeRule" {
+			if p, err = json.Marshal(convertMap(e.Properties.Pattern)); err != nil {
 				return "", err
 			}
 		}
@@ -73,11 +73,11 @@ func dataFromSAM(sampath string) (string, error) {
 func convertMap(i interface{}) interface{} {
 	switch x := i.(type) {
 	case map[interface{}]interface{}:
-		m2 := map[string]interface{}{}
+		m := map[string]interface{}{}
 		for k, v := range x {
-			m2[k.(string)] = convertMap(v)
+			m[k.(string)] = convertMap(v)
 		}
-		return m2
+		return m
 
 	case []interface{}:
 		for i, v := range x {

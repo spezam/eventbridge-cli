@@ -1,5 +1,5 @@
 {
-    "source": "delta",
+    "source": "beta",
     "detail": "{\"channel\": \"web\"}",
     "detail-type": "poc.succeeded"
 }
