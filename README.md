@@ -144,7 +144,7 @@ eventbridge-cli -p myawsprofile -j \
 
 # event pattern from SAM template, BetaFunction lambda function
 eventbridge-cli -p myawsprofile -j \
-	-e sam://testdata/template.yaml/BetaFunction \
+   -e sam://testdata/template.yaml/BetaFunction \
    ci -i file://testdata/event_ci_success.json
 
 # listen to events from other sources (lambda, aws cli, sam local, ...)
