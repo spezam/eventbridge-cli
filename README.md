@@ -4,7 +4,7 @@
 
 Amazon EventBridge is a serverless event bus that makes it easy to connect applications together using data from your own applications, integrated Software-as-a-Service (SaaS) applications, and AWS services.
 
-Eventbridge-cli is a tool to listen to an EventBus events. Useful for debugging and event pattern testing.
+Eventbridge-cli is a tool to listen to an EventBus events. Useful for debugging, event pattern testing, CI pipelines integration.
 ```
 EventBus --> EventBrige Rule --> SQS <-- poller
 ```
@@ -12,7 +12,7 @@ EventBus --> EventBrige Rule --> SQS <-- poller
 Features:
 - Listen to Event Bus messages
 - Filter messages by event pattern
-- Read event pattern from cli or file
+- Read event pattern from cli, file or SAM template
 - Authentication via profile or env variables
 - Pretty JSON output
 - CI mode
@@ -58,7 +58,7 @@ GLOBAL OPTIONS:
    --profile value, -p value       AWS profile (default: "default") [$AWS_PROFILE]
    --region value, -r value        AWS region [$AWS_DEFAULT_REGION]
    --eventbusname value, -b value  EventBridge Bus Name (default: "default")
-   --eventpattern value, -e value  EventBridge event pattern. Can be prefixed by 'file://' (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
+   --eventpattern value, -e value  EventBridge event pattern. Can be prefixed by 'file://' or 'sam://' (default: "{\"source\": [{\"anything-but\": [\"eventbridge-cli\"]}]}")
    --prettyjson, -j                Pretty JSON output (default: false)
    --help, -h                      show help (default: false)
    --version, -v                   print the version (default: false)
@@ -66,23 +66,28 @@ GLOBAL OPTIONS:
 
 ### Usage example:
 ```sh
-# with env variables
+# env variables
 AWS_PROFILE=myawsprofile eventbridge-cli
 AWS_PROFILE=myawsprofile AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
 
-# with cli flags
+# cli flags
 eventbridge-cli -p myawsprofile
 eventbridge-cli -p myawsprofile -r eu-north-1
 
-# with event pattern
+# event pattern
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
 
-# with event pattern from file in testdata/eventpattern.json
+# event pattern from file in testdata/eventpattern.json
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e file://testdata/eventpattern.json
+
+# event pattern from SAM template, BetaFunction lambda function
+eventbridge-cli -p myawsprofile -j \
+	-b fishnchips-eventbus \
+	-e sam://testdata/template.yaml/BetaFunction
 ```
 
 ![screenshot](assets/screenshot.png)
@@ -90,10 +95,10 @@ eventbridge-cli -p myawsprofile -j \
 ## CI mode
 CI mode can be used to perform integration testing in an automated way.
 
-Given an event pattern (*global* flag -e) and an input event (*ci* flag -i), verifies the message goes through the event bus within timeout (ci flag -t).
+Given an event pattern (*global* flag -e) and an input event (*ci* flag -i), verifies the message goes through the event bus within timeout (*ci* flag -t).
 
 Note: global flags are position sensitive and can't be used under 'ci' command. For example:
-```
+```sh
 eventbridge-cli -j ci -t 20
 ```
 
@@ -118,28 +123,34 @@ OPTIONS:
 ```sh
 # event pattern and input event from cli
 eventbridge-cli -p myawsprofile -j \
-   -e '{"source": ["delta"]}' ci \
-   -i '{"source":"delta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
+   -e '{"source": ["beta"]}' \
+   ci -i '{"source":"beta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
 
 # specify timeout
 eventbridge-cli -p myawsprofile -j \
-   -e '{"source": ["delta"]}' ci \
-   -i '{"source":"delta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}' \
+   -e '{"source": ["beta"]}' \
+   ci -i '{"source":"beta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}' \
    -t 20
 
 # event pattern and input event from file
 eventbridge-cli -p myawsprofile -j \
-   -e file://testdata/eventpattern.json ci \
-   -i file://testdata/event_ci_success.json
+   -e file://testdata/eventpattern.json \
+   ci -i file://testdata/event_ci_success.json
 
 # event pattern and input event from file - failing CI
 eventbridge-cli -p myawsprofile -j \
-   -e file://testdata/eventpattern.json ci \
-   -i file://testdata/event_ci_fail.json
+   -e file://testdata/eventpattern.json \
+   ci -i file://testdata/event_ci_fail.json
 
-# listen to events from other sources (Lambda, aws cli, SAM, ...)
+# event pattern from SAM template, BetaFunction lambda function
 eventbridge-cli -p myawsprofile -j \
-   -e file://testdata/eventpattern.json ci
+   -e sam://testdata/template.yaml/BetaFunction \
+   ci -i file://testdata/event_ci_success.json
+
+# listen to events from other sources (lambda, aws cli, sam local, ...)
+eventbridge-cli -p myawsprofile -j \
+   -e file://testdata/eventpattern.json \
+   ci
 ```
 
 ### Content-based Filtering with Event Patterns reference:

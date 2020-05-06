@@ -1,0 +1,27 @@
+Transform: AWS::Serverless-2016-10-31
+Description: EventBridge Beta Integration
+
+Resources:
+  BetaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: eventbridge-beta
+      Description: "EventBridge - Beta (β)"
+      Handler: beta
+      Runtime: go1.x
+      Timeout: 6
+      CodeUri: ./source/
+      Tracing: Active
+      Events:
+        EventBridge:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: SomeEventBus
+            Pattern:
+              source:
+              - beta
+              detail:
+                channel:
+                - web
+            # also valid
+            # Pattern: { "source": [ "beta" ], "detail": { "channel": [ "web" ] } }
