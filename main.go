@@ -3,6 +3,7 @@ package main
 // EventBus --> EventBrige Rule --> SQS <-- poller
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -42,7 +43,7 @@ func main() {
 
 func run(c *cli.Context) error {
 	// AWS config
-	awsCfg, err := newAWSConfig(c.String("profile"), c.String("region"))
+	awsCfg, err := newAWSConfig(c.Context, c.String("profile"), c.String("region"))
 	if err != nil {
 		return err
 	}
@@ -165,16 +166,26 @@ func run(c *cli.Context) error {
 	return nil
 }
 
-func newAWSConfig(profile, region string) (aws.Config, error) {
-	cfg, err := external.LoadDefaultAWSConfig(external.WithSharedConfigProfile(profile))
+func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, error) {
+	var awsCfg aws.Config
+	var configs []external.Config
+	if profile != "" {
+		configs = append(configs, external.WithSharedConfigProfile(profile))
+	}
+
+	awsCfg, err := external.LoadDefaultAWSConfig(configs...)
 	if err != nil {
-		return aws.Config{}, err
+		return awsCfg, err
+	}
+	// check credentials
+	if _, err := awsCfg.Credentials.Retrieve(ctx); err != nil {
+		return awsCfg, err
 	}
 
 	// override profile region if present
 	if region != "" {
-		cfg.Region = region
+		awsCfg.Region = region
 	}
 
-	return cfg, nil
+	return awsCfg, nil
 }
