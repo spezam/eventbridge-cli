@@ -28,6 +28,7 @@ jobs:
       run: go test ./... -v -cover
 
   integration-test:
+    runs-on: ubuntu-latest
     steps:
     - name: install Go
       uses: actions/setup-go@master
