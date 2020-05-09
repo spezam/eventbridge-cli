@@ -46,5 +46,5 @@ jobs:
         aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
     - name: test
-      run: test -tags=integration -v
+      run: go test -tags=integration -v
 
