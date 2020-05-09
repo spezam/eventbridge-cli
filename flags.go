@@ -11,7 +11,7 @@ var flags = []cli.Flag{
 		Name:    "profile",
 		Aliases: []string{"p"},
 		Usage:   "AWS profile",
-		Value:   "default",
+		//Value:   "default",
 		EnvVars: []string{"AWS_PROFILE"},
 	},
 	&cli.StringFlag{
