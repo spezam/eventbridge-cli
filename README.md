@@ -13,10 +13,12 @@ Features:
 - Listen to Event Bus messages
 - Filter messages by event pattern
 - Read event pattern from cli, file or SAM template
-- Authentication via profile or env variables
+- Authentication via profile or env variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
 - Pretty JSON output
 - CI mode
 - ...
+
+![screenshot](assets/screenshot.png)
 
 ### Install from releases binary:
 ```
@@ -64,33 +66,36 @@ GLOBAL OPTIONS:
    --version, -v                   print the version (default: false)
 ```
 
-### Usage example:
+### Usage examples:
+Authenticate via environment variable:
 ```sh
-# env variables
 AWS_PROFILE=myawsprofile eventbridge-cli
-AWS_PROFILE=myawsprofile AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
+AWS_DEFAULT_REGION=eu-north-1 AWS_ACCESS_KEY_ID=zzZZ AWS_SECRET_ACCESS_KEY=abbC eventbridge-cli
+```
 
-# cli flags
+Authenticate via cli flags:
+```sh
 eventbridge-cli -p myawsprofile
 eventbridge-cli -p myawsprofile -r eu-north-1
+```
 
-# event pattern
+Specify event pattern:
+```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
 
-# event pattern from file in testdata/eventpattern.json
+# from file in testdata/eventpattern.json
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e file://testdata/eventpattern.json
 
-# event pattern from SAM template, BetaFunction lambda function
+# from SAM template, BetaFunction lambda function
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e sam://testdata/template.yaml/BetaFunction
 ```
 
-![screenshot](assets/screenshot.png)
 
 ## CI mode
 CI mode can be used to perform integration testing in an automated way.
@@ -119,13 +124,15 @@ OPTIONS:
    --help, -h                 show help (default: false)
 ```
 
-### Usage example:
+### Usage examples:
+Event pattern and input event from cli:
 ```sh
-# event pattern and input event from cli
 eventbridge-cli -p myawsprofile -j \
    -e '{"source": ["beta"]}' \
    ci -i '{"source":"beta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
+```
 
+```sh
 # specify timeout
 eventbridge-cli -p myawsprofile -j \
    -e '{"source": ["beta"]}' \
