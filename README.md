@@ -98,7 +98,7 @@ eventbridge-cli -p myawsprofile -j \
 ## CI mode
 CI mode can be used to perform integration testing in an automated way.
 
-Given an event pattern (*global* flag -e) and an input event (*ci* flag -i), verifies the message goes through the event bus within timeout (*ci* flag -t).
+Given an event pattern (*global* flag `-e`) and an input event (*ci* flag `-i`), verifies the message goes through the event bus within timeout (*ci* flag `-t`).
 
 Note: global flags are position sensitive and can't be used under 'ci' command. For example:
 ```sh
