@@ -79,22 +79,16 @@ eventbridge-cli -p myawsprofile
 eventbridge-cli -p myawsprofile -r eu-north-1
 ```
 
-Event pattern can be specified directly in the cli `-e '{}':
+Event pattern can be specified directly in the cli `-e '{}'`, using a JSON file `-e file://...` or from a SAM template `-e sam://<template_file>/<serverless_function_name>`:
 ```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
-```
 
-using a JSON file `-e file://...`:
- ```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e file://testdata/eventpattern.json
-```
 
-or from a SAM template `-e sam://<template_file>/<serverless_function_name>`:
-```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e sam://testdata/template.yaml/BetaFunction
@@ -136,7 +130,7 @@ eventbridge-cli -p myawsprofile -j \
    ci -i '{"source":"beta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
 ```
 
-use the `-t` flag to specify timeout:
+Use the `-t` flag to specify timeout:
 ```sh
 eventbridge-cli -p myawsprofile -j \
    -e '{"source": ["beta"]}' \
@@ -144,26 +138,26 @@ eventbridge-cli -p myawsprofile -j \
    -t 20
 ```
 
-event pattern and input event from file:
+Event pattern and input event from file:
 ```sh
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci -i file://testdata/event_ci_success.json
 
-# event pattern and input event from file - failing CI
+# failing CI
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci -i file://testdata/event_ci_fail.json
 ```
 
-event pattern from SAM template, BetaFunction lambda function:
+Event pattern from SAM template, BetaFunction lambda function:
 ```sh
 eventbridge-cli -p myawsprofile -j \
    -e sam://testdata/template.yaml/BetaFunction \
    ci -i file://testdata/event_ci_success.json
 ```
 
-listen to events from any other source (lambda, aws cli, sam local, ...)
+Listen to events from any other source (lambda, aws cli, sam local, ...)
 ```sh
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
