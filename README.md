@@ -79,18 +79,22 @@ eventbridge-cli -p myawsprofile
 eventbridge-cli -p myawsprofile -r eu-north-1
 ```
 
-Specify event pattern:
+Event pattern can be specified directly in the cli:
 ```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
+```
 
-# from file in testdata/eventpattern.json
+using a JSON file (`-e file://...`):
+ ```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e file://testdata/eventpattern.json
+```
 
-# from SAM template, BetaFunction lambda function
+or from a SAM template (`-e sam://<template_file>/<serverless_function_name>`):
+```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e sam://testdata/template.yaml/BetaFunction
@@ -132,14 +136,16 @@ eventbridge-cli -p myawsprofile -j \
    ci -i '{"source":"beta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
 ```
 
+use the `-t` flag to specify timeout:
 ```sh
-# specify timeout
 eventbridge-cli -p myawsprofile -j \
    -e '{"source": ["beta"]}' \
    ci -i '{"source":"beta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}' \
    -t 20
+```
 
-# event pattern and input event from file
+event pattern and input event from file:
+```sh
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci -i file://testdata/event_ci_success.json
@@ -148,13 +154,17 @@ eventbridge-cli -p myawsprofile -j \
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci -i file://testdata/event_ci_fail.json
+```
 
-# event pattern from SAM template, BetaFunction lambda function
+event pattern from SAM template, BetaFunction lambda function:
+```sh
 eventbridge-cli -p myawsprofile -j \
    -e sam://testdata/template.yaml/BetaFunction \
    ci -i file://testdata/event_ci_success.json
+```
 
-# listen to events from other sources (lambda, aws cli, sam local, ...)
+listen to events from any other source (lambda, aws cli, sam local, ...)
+```sh
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci
