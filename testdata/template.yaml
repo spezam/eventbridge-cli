@@ -16,7 +16,7 @@ Resources:
         EventBridge:
           Type: EventBridgeRule
           Properties:
-            EventBusName: SomeEventBus
+            EventBusName: default
             Pattern:
               source:
               - beta

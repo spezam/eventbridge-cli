@@ -1,3 +1,5 @@
+// +build !integration
+
 package main
 
 import (
@@ -83,11 +85,13 @@ func (m *mockSQSclient) DeleteMessageBatchRequest(input *sqs.DeleteMessageBatchI
 }
 func Test_createQueue(t *testing.T) {
 	tests := []struct {
-		name    string
+		name string
+
 		ruleArn string
 		client  *mockSQSclient
 		want    *sqsClient
-		err     bool
+
+		err bool
 	}{
 		{
 			name:    "create SQS queue",
@@ -190,10 +194,12 @@ func Test_pollQueueCancel(t *testing.T) {
 
 func Test_pollQueue(t *testing.T) {
 	tests := []struct {
-		name       string
+		name string
+
 		prettyJSON bool
 		client     *mockSQSclient
-		err        bool
+
+		err bool
 	}{
 		{
 			name: "poll SQS queue",

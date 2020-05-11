@@ -13,10 +13,12 @@ Features:
 - Listen to Event Bus messages
 - Filter messages by event pattern
 - Read event pattern from cli, file or SAM template
-- Authentication via profile or env variables
+- Authentication via profile or env variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
 - Pretty JSON output
 - CI mode
 - ...
+
+![screenshot](assets/screenshot.png)
 
 ### Install from releases binary:
 ```
@@ -64,38 +66,39 @@ GLOBAL OPTIONS:
    --version, -v                   print the version (default: false)
 ```
 
-### Usage example:
+### Usage
+Authenticate via environment variable:
 ```sh
-# env variables
 AWS_PROFILE=myawsprofile eventbridge-cli
-AWS_PROFILE=myawsprofile AWS_DEFAULT_REGION=eu-north-1 eventbridge-cli
+AWS_DEFAULT_REGION=eu-north-1 AWS_ACCESS_KEY_ID=zzZZ AWS_SECRET_ACCESS_KEY=abbC eventbridge-cli
+```
 
-# cli flags
+Authenticate via cli flags:
+```sh
 eventbridge-cli -p myawsprofile
 eventbridge-cli -p myawsprofile -r eu-north-1
+```
 
-# event pattern
+Event pattern can be specified directly in the cli `-e '{}'`, using a JSON file `-e file://...` or from a SAM template `-e sam://<template_file>/<serverless_function_name>`:
+```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
 
-# event pattern from file in testdata/eventpattern.json
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e file://testdata/eventpattern.json
 
-# event pattern from SAM template, BetaFunction lambda function
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e sam://testdata/template.yaml/BetaFunction
 ```
 
-![screenshot](assets/screenshot.png)
 
 ## CI mode
 CI mode can be used to perform integration testing in an automated way.
 
-Given an event pattern (*global* flag -e) and an input event (*ci* flag -i), verifies the message goes through the event bus within timeout (*ci* flag -t).
+Given an event pattern (*global* flag `-e`) and an input event (*ci* flag `-i`), verifies the message goes through the event bus within timeout (*ci* flag `-t`).
 
 Note: global flags are position sensitive and can't be used under 'ci' command. For example:
 ```sh
@@ -119,35 +122,43 @@ OPTIONS:
    --help, -h                 show help (default: false)
 ```
 
-### Usage example:
+### Usage
+Event pattern and input event from cli:
 ```sh
-# event pattern and input event from cli
 eventbridge-cli -p myawsprofile -j \
    -e '{"source": ["beta"]}' \
    ci -i '{"source":"beta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}'
+```
 
-# specify timeout
+Use the `-t` flag to specify timeout:
+```sh
 eventbridge-cli -p myawsprofile -j \
    -e '{"source": ["beta"]}' \
    ci -i '{"source":"beta", "detail":"{\"channel\":\"web\"}", "detail-type": "poc"}' \
    -t 20
+```
 
-# event pattern and input event from file
+Event pattern and input event from file:
+```sh
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci -i file://testdata/event_ci_success.json
 
-# event pattern and input event from file - failing CI
+# failing CI
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci -i file://testdata/event_ci_fail.json
+```
 
-# event pattern from SAM template, BetaFunction lambda function
+Event pattern from SAM template, BetaFunction lambda function:
+```sh
 eventbridge-cli -p myawsprofile -j \
    -e sam://testdata/template.yaml/BetaFunction \
    ci -i file://testdata/event_ci_success.json
+```
 
-# listen to events from other sources (lambda, aws cli, sam local, ...)
+Listen to events from any other source (lambda, aws cli, sam local, ...)
+```sh
 eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci
