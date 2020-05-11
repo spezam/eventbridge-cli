@@ -66,7 +66,7 @@ GLOBAL OPTIONS:
    --version, -v                   print the version (default: false)
 ```
 
-### Usage examples:
+### Usage
 Authenticate via environment variable:
 ```sh
 AWS_PROFILE=myawsprofile eventbridge-cli
@@ -79,21 +79,21 @@ eventbridge-cli -p myawsprofile
 eventbridge-cli -p myawsprofile -r eu-north-1
 ```
 
-Event pattern can be specified directly in the cli:
+Event pattern can be specified directly in the cli `-e '{}':
 ```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e '{"source":["gamma"],"detail":{"channel":["web"]}}'
 ```
 
-using a JSON file (`-e file://...`):
+using a JSON file `-e file://...`:
  ```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
 	-e file://testdata/eventpattern.json
 ```
 
-or from a SAM template (`-e sam://<template_file>/<serverless_function_name>`):
+or from a SAM template `-e sam://<template_file>/<serverless_function_name>`:
 ```sh
 eventbridge-cli -p myawsprofile -j \
 	-b fishnchips-eventbus \
@@ -128,7 +128,7 @@ OPTIONS:
    --help, -h                 show help (default: false)
 ```
 
-### Usage examples:
+### Usage
 Event pattern and input event from cli:
 ```sh
 eventbridge-cli -p myawsprofile -j \
