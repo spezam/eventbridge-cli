@@ -169,6 +169,8 @@ func run(c *cli.Context) error {
 func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, error) {
 	var awsCfg aws.Config
 	var configs []external.Config
+
+	// use profile if present
 	if profile != "" {
 		configs = append(configs, external.WithSharedConfigProfile(profile))
 	}
@@ -177,7 +179,7 @@ func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, erro
 	if err != nil {
 		return awsCfg, err
 	}
-	// check credentials
+	// check credentials validity
 	if _, err := awsCfg.Credentials.Retrieve(ctx); err != nil {
 		return awsCfg, err
 	}
