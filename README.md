@@ -1,5 +1,5 @@
 # ![logo](assets/logo.png) eventbridge-cli
-![Release](https://img.shields.io/github/release/spezam/eventbridge-cli.svg)(https://github.com/spezam/eventbridge-cli/releases/latest)
+[![Release](https://img.shields.io/github/release/spezam/eventbridge-cli.svg)](https://github.com/spezam/eventbridge-cli/releases/latest)
 ![Actions Status](https://github.com/spezam/eventbridge-cli/workflows/test/badge.svg)
 ![Code Scanning](https://github.com/spezam/eventbridge-cli/workflows/code%20scanning/badge.svg)
 
