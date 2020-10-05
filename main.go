@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 )
@@ -168,14 +168,14 @@ func run(c *cli.Context) error {
 
 func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, error) {
 	var awsCfg aws.Config
-	var configs []external.Config
+	var configs []config.Config
 
 	// use profile if present
 	if profile != "" {
-		configs = append(configs, external.WithSharedConfigProfile(profile))
+		configs = append(configs, config.WithSharedConfigProfile(profile))
 	}
 
-	awsCfg, err := external.LoadDefaultAWSConfig(configs...)
+	awsCfg, err := config.LoadDefaultConfig(configs...)
 	if err != nil {
 		return awsCfg, err
 	}
