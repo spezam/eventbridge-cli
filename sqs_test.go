@@ -7,29 +7,27 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	"github.com/aws/aws-sdk-go-v2/service/sqs/sqsiface"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/stretchr/testify/assert"
 )
 
+var _ sqsClientAPI = (*mockSQSclient)(nil)
+
 type mockSQSclient struct {
-	sqsiface.ClientAPI
+	err error
 
-	createQueueResponse    *sqs.CreateQueueOutput
-	receiveMessageResponse *sqs.ReceiveMessageOutput
-
-	createQueueError    error
-	deleteQueueError    error
-	receiveMessageError error
+	queueURL        *string
+	receiveMessages []*types.Message
 }
 
 const (
+	queueURL  = "http://localhost"
 	arn       = "arn:aws:sqs:eu-north-1:1234567890:eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
 	ruleArn   = "arn:aws:events:eu-north-1:1234567890:rule/eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
 	queueName = "eventbridge-cli-14bc1c21-13ae-41a5-8951-76402ce2946e"
@@ -40,49 +38,26 @@ func init() {
 	log.SetOutput(ioutil.Discard)
 }
 
-func (m *mockSQSclient) CreateQueueRequest(input *sqs.CreateQueueInput) sqs.CreateQueueRequest {
-	return sqs.CreateQueueRequest{
-		Request: &aws.Request{
-			Data:        m.createQueueResponse,
-			Error:       m.createQueueError,
-			HTTPRequest: &http.Request{},
-			Retryer:     aws.NoOpRetryer{},
-		},
-	}
+func (m *mockSQSclient) CreateQueue(ctx context.Context, params *sqs.CreateQueueInput, optFns ...func(*sqs.Options)) (*sqs.CreateQueueOutput, error) {
+	return &sqs.CreateQueueOutput{
+		QueueUrl: m.queueURL,
+	}, m.err
 }
 
-func (m *mockSQSclient) DeleteQueueRequest(input *sqs.DeleteQueueInput) sqs.DeleteQueueRequest {
-	return sqs.DeleteQueueRequest{
-		Request: &aws.Request{
-			Data:        &sqs.DeleteQueueOutput{},
-			Error:       m.deleteQueueError,
-			HTTPRequest: &http.Request{},
-			Retryer:     aws.NoOpRetryer{},
-		},
-	}
+func (m *mockSQSclient) DeleteQueue(ctx context.Context, params *sqs.DeleteQueueInput, optFns ...func(*sqs.Options)) (*sqs.DeleteQueueOutput, error) {
+	return &sqs.DeleteQueueOutput{}, m.err
 }
 
-func (m *mockSQSclient) ReceiveMessageRequest(input *sqs.ReceiveMessageInput) sqs.ReceiveMessageRequest {
-	return sqs.ReceiveMessageRequest{
-		Request: &aws.Request{
-			Data:        m.receiveMessageResponse,
-			Error:       m.receiveMessageError,
-			HTTPRequest: &http.Request{},
-			Retryer:     aws.NoOpRetryer{},
-		},
-	}
+func (m *mockSQSclient) ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
+	return &sqs.ReceiveMessageOutput{
+		Messages: m.receiveMessages,
+	}, m.err
 }
 
-func (m *mockSQSclient) DeleteMessageBatchRequest(input *sqs.DeleteMessageBatchInput) sqs.DeleteMessageBatchRequest {
-	return sqs.DeleteMessageBatchRequest{
-		Request: &aws.Request{
-			Data:        &sqs.DeleteMessageBatchOutput{},
-			Error:       m.receiveMessageError,
-			HTTPRequest: &http.Request{},
-			Retryer:     aws.NoOpRetryer{},
-		},
-	}
+func (m *mockSQSclient) DeleteMessageBatch(ctx context.Context, params *sqs.DeleteMessageBatchInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageBatchOutput, error) {
+	return &sqs.DeleteMessageBatchOutput{}, m.err
 }
+
 func Test_createQueue(t *testing.T) {
 	tests := []struct {
 		name string
@@ -97,19 +72,15 @@ func Test_createQueue(t *testing.T) {
 			name:    "create SQS queue",
 			ruleArn: ruleArn,
 			client: &mockSQSclient{
-				createQueueResponse: &sqs.CreateQueueOutput{
-					QueueUrl: aws.String("https://localhost"),
-				},
+				queueURL: aws.String(queueURL),
 			},
 			want: &sqsClient{
 				client: &mockSQSclient{
-					createQueueResponse: &sqs.CreateQueueOutput{
-						QueueUrl: aws.String("https://localhost"),
-					},
+					queueURL: aws.String(queueURL),
 				},
 				arn:       arn,
 				queueName: queueName,
-				queueURL:  "https://localhost",
+				queueURL:  queueURL,
 			},
 			err: false,
 		},
@@ -117,7 +88,7 @@ func Test_createQueue(t *testing.T) {
 			name:    "create SQS queue error",
 			ruleArn: ruleArn,
 			client: &mockSQSclient{
-				createQueueError: errors.New("unable to create SQS queue"),
+				err: errors.New("unable to create SQS queue"),
 			},
 			err: true,
 		},
@@ -157,7 +128,7 @@ func Test_deleteQueue(t *testing.T) {
 		{
 			name: "delete SQS queue error",
 			client: &mockSQSclient{
-				deleteQueueError: errors.New("unable to delete SQS queue"),
+				err: errors.New("unable to delete SQS queue"),
 			},
 			err: true,
 		},
@@ -196,20 +167,17 @@ func Test_pollQueue(t *testing.T) {
 	tests := []struct {
 		name string
 
-		prettyJSON bool
-		client     *mockSQSclient
+		client *mockSQSclient
 
 		err bool
 	}{
 		{
 			name: "poll SQS queue",
 			client: &mockSQSclient{
-				receiveMessageResponse: &sqs.ReceiveMessageOutput{
-					Messages: []sqs.Message{
-						{
-							MessageId: aws.String("dc909f9a-377b-cc13-627d-6fdbc2ea458c"),
-							Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),
-						},
+				receiveMessages: []*types.Message{
+					{
+						MessageId: aws.String("dc909f9a-377b-cc13-627d-6fdbc2ea458c"),
+						Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),
 					},
 				},
 			},
@@ -218,26 +186,21 @@ func Test_pollQueue(t *testing.T) {
 		{
 			name: "poll SQS queue - no messages",
 			client: &mockSQSclient{
-				receiveMessageResponse: &sqs.ReceiveMessageOutput{
-					Messages: []sqs.Message{},
-				},
+				receiveMessages: []*types.Message{},
 			},
 			err: false,
 		},
 		{
 			name: "poll SQS queue - prettyJSON",
 			client: &mockSQSclient{
-				receiveMessageResponse: &sqs.ReceiveMessageOutput{
-					Messages: []sqs.Message{
-						{
-							MessageId: aws.String("dc909f9a-377b-cc13-627d-6fdbc2ea458c"),
-							Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),
-						},
+				receiveMessages: []*types.Message{
+					{
+						MessageId: aws.String("dc909f9a-377b-cc13-627d-6fdbc2ea458c"),
+						Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),
 					},
 				},
 			},
-			prettyJSON: true,
-			err:        false,
+			err: false,
 		},
 	}
 
@@ -246,10 +209,10 @@ func Test_pollQueue(t *testing.T) {
 			signalChan := make(chan os.Signal, 1)
 			client := &sqsClient{
 				client:   test.client,
-				queueURL: "https://localhost",
+				queueURL: queueURL,
 			}
 
-			go client.pollQueue(context.Background(), signalChan, test.prettyJSON)
+			go client.pollQueue(context.Background(), signalChan, true)
 
 			time.Sleep(2 * time.Second)
 			signalChan <- os.Interrupt
