@@ -16,11 +16,19 @@ import (
 )
 
 type sqsClient struct {
-	client *sqs.Client
+	// client *sqs.Client
+	client sqsClientAPI
 
 	arn       string
 	queueName string
 	queueURL  string
+}
+
+type sqsClientAPI interface {
+	CreateQueue(ctx context.Context, params *sqs.CreateQueueInput, optFns ...func(*sqs.Options)) (*sqs.CreateQueueOutput, error)
+	DeleteQueue(ctx context.Context, params *sqs.DeleteQueueInput, optFns ...func(*sqs.Options)) (*sqs.DeleteQueueOutput, error)
+	ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error)
+	DeleteMessageBatch(ctx context.Context, params *sqs.DeleteMessageBatchInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageBatchOutput, error)
 }
 
 func newSQSClient(cfg aws.Config, accountID, queueName string) *sqsClient {
