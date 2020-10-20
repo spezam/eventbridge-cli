@@ -16,7 +16,6 @@ import (
 )
 
 type sqsClient struct {
-	// client *sqs.Client
 	client sqsClientAPI
 
 	arn       string
