@@ -61,6 +61,6 @@ var flagsTestEventPattern = []cli.Flag{
 	&cli.StringFlag{
 		Name:    "inputevent",
 		Aliases: []string{"i"},
-		Usage:   "Input event. Can be prefixed by 'file://' or omitted if coming from other sources",
+		Usage:   "Input event. Can be prefixed by 'file://'",
 	},
 }
