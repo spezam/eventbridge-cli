@@ -48,6 +48,19 @@ var flagsCI = []cli.Flag{
 	&cli.StringFlag{
 		Name:    "inputevent",
 		Aliases: []string{"i"},
-		Usage:   "Input event. Can be omitted if coming from other sources or prefixed by 'file://'",
+		Usage:   "Input event. Can be prefixed by 'file://' or omitted if coming from other sources",
+	},
+}
+
+var flagsTestEventPattern = []cli.Flag{
+	&cli.StringFlag{
+		Name:    "eventrule",
+		Aliases: []string{"e"},
+		Usage:   "EventBridge rule name. Can be a prefix",
+	},
+	&cli.StringFlag{
+		Name:    "inputevent",
+		Aliases: []string{"i"},
+		Usage:   "Input event. Can be prefixed by 'file://' or omitted if coming from other sources",
 	},
 }
