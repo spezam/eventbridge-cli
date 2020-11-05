@@ -191,7 +191,10 @@ OPTIONS:
 ### Usage
 ```sh
 eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
-   test-event -i file://testdata/eventpattern.json -e fishnchips-
+   test-event -i file://testdata/eventpattern.json -e fishnch
+
+eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
+   test-event -i file://testdata/eventpattern.json -e fishnchips-eventbridge-BetaFunctionEventListener
 ```
 
 ### Content-based Filtering with Event Patterns reference:
