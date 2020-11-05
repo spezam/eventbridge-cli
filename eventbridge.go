@@ -56,10 +56,10 @@ func (e *eventbridgeClient) testEventPattern(ctx context.Context, inputEvent, ev
 		}
 
 		if *res.Result == false {
-			log.Printf("%s: %s", *r.Name, color.RedString("x"))
+			log.Printf("%s: %s", *r.Name, color.RedString("✘"))
 			continue
 		}
-		log.Printf("%s: %s", *r.Name, color.GreenString("✓"))
+		log.Printf("%s: %s", *r.Name, color.GreenString("✔"))
 	}
 
 	return nil
