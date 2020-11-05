@@ -169,7 +169,7 @@ eventbridge-cli -p myawsprofile -j \
 ## Test Event Rule
 Test event payloads against deployed event rules on a specific eventbus.
 
-Given a bus (flag `-b`) an event rule (flag `-e`) and an input event (flag `-i`), verifies the payload will match the rule.
+Given a bus (*global* flag `-b`) an event rule (*event-test* flag `-e`) and an input event (*event-test* flag `-i`), verifies the payload will match the rule.
 Rule is threated as prefix, so can be a subset of the rule name (ie. `-e fish` will test all rules starting with `fish`)
 
 Note: global flags are position sensitive and can't be used under 'event-test' command. For example:
