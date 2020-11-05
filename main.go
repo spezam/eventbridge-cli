@@ -166,6 +166,33 @@ func run(c *cli.Context) error {
 	return nil
 }
 
+func runTestEventPattern(c *cli.Context) error {
+	// AWS config
+	awsCfg, err := newAWSConfig(c.Context, c.String("profile"), c.String("region"))
+	if err != nil {
+		return err
+	}
+
+	// eventbridge client
+	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, c.String("eventbusname"))
+
+	inputevent := c.String("inputevent")
+	if strings.HasPrefix(inputevent, "file://") {
+		inputevent, err = dataFromFile(inputevent)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = ebClient.testEventPattern(c.Context, inputevent, c.String("eventrule"))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, error) {
 	var awsCfg aws.Config
 	var configs []config.Config
