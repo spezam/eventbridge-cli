@@ -54,13 +54,15 @@ var flagsCI = []cli.Flag{
 
 var flagsTestEventPattern = []cli.Flag{
 	&cli.StringFlag{
-		Name:    "eventrule",
-		Aliases: []string{"e"},
-		Usage:   "EventBridge rule name. Can be a prefix",
+		Name:     "eventrule",
+		Aliases:  []string{"e"},
+		Usage:    "EventBridge rule name. Can be a prefix",
+		Required: true,
 	},
 	&cli.StringFlag{
-		Name:    "inputevent",
-		Aliases: []string{"i"},
-		Usage:   "Input event. Can be prefixed by 'file://'",
+		Name:     "inputevent",
+		Aliases:  []string{"i"},
+		Usage:    "Input event. Can be prefixed by 'file://'",
+		Required: true,
 	},
 }
