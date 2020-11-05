@@ -165,6 +165,35 @@ eventbridge-cli -p myawsprofile -j \
    ci
 ```
 
+## Test Event Rule
+Test event payloads against deployed event rules on a specific eventbus.
+
+Given an event rule (flag `-e`) and an input event (flag `-i`), verifies the payload will match the rule.
+Rule is threated as prefix, so can be a subset of the rule name (ie. `-e fish` will test all rules starting with `fish`)
+
+### Flags:
+```
+NAME:
+   eventbridge-cli test-event - AWS EventBridge test-event
+
+USAGE:
+   eventbridge-cli test-event [command options] [arguments...]
+
+DESCRIPTION:
+   run eventbridge-cli to test an event against a deployed event pattern
+
+OPTIONS:
+   --eventrule value, -e value   EventBridge rule name. Can be a prefix
+   --inputevent value, -i value  Input event. Can be prefixed by 'file://' or omitted if coming from other sources
+   --help, -h                    show help (default: false)
+```
+
+### Usage
+```sh
+eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
+   test-event -i file://testdata/eventpattern.json -e fishnchips-
+```
+
 ### Content-based Filtering with Event Patterns reference:
 https://docs.aws.amazon.com/eventbridge/latest/userguide/content-filtering-with-event-patterns.html
 
