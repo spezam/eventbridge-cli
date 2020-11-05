@@ -169,8 +169,11 @@ eventbridge-cli -p myawsprofile -j \
 ## Test Event Rule
 Test event payloads against deployed event rules on a specific eventbus.
 
-Given a bus (*global* flag `-b`) an event rule (*event-test* flag `-e`) and an input event (*event-test* flag `-i`), verifies the payload will match the rule.
-Rule is threated as prefix, so can be a subset of the rule name (ie. `-e fish` will test all rules starting with `fish`)
+![screenshot](assets/screenshot_event-test.png)
+
+
+Given an optional bus (*global* flag `-b`) an event rule (*event-test* flag `-e`) and an input event (*event-test* flag `-i`), verifies the payload will match the rule.
+Rule is treated as prefix, so can be a subset of the rule name (ie. `-e fish` will test all rules starting with `fish`)
 
 Note: global flags are position sensitive and can't be used under 'event-test' command. For example:
 ```sh
@@ -207,6 +210,8 @@ eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
    -i '{"version":"0", "id": "cwe-test", "account": "123456789012", "region": "eu-north-1", "time": "2017-04-11T20:11:04Z", "source": ["beta"], "detail": {"channel": ["web"]}, "detail-type": ["poc.succeeded"]}' \
    -e fishnchips-eventbridge-BetaFunctionEventListener
 ```
+
+
 
 ### Content-based Filtering with Event Patterns reference:
 https://docs.aws.amazon.com/eventbridge/latest/userguide/content-filtering-with-event-patterns.html
