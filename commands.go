@@ -13,7 +13,7 @@ var commands = []*cli.Command{
 	{
 		Name:        "test-event",
 		Usage:       "AWS EventBridge test-event",
-		Description: "run eventbridge-cli to test an event against a deployed event pattern",
+		Description: "run eventbridge-cli to test an event against a deployed event rule pattern",
 		Flags:       flagsTestEventPattern,
 		Action:      runTestEventPattern,
 	},
