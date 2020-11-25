@@ -24,7 +24,7 @@ func Test_integration(t *testing.T) {
 		{
 			name:         "successfull",
 			eventbusname: "default",
-			eventpattern: "file://testdata/eventpattern.json",
+			eventpattern: "file://testdata/eventpattern_ci.json",
 			inputevent:   "file://testdata/event_ci_success.json",
 			err:          false,
 		},
@@ -38,7 +38,7 @@ func Test_integration(t *testing.T) {
 		{
 			name:         "failing",
 			eventbusname: "default",
-			eventpattern: "file://testdata/eventpattern.json",
+			eventpattern: "file://testdata/eventpattern_ci.json",
 			inputevent:   "file://testdata/event_ci_fail.json",
 			err:          true,
 		},
