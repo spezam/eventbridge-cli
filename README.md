@@ -203,12 +203,14 @@ eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
    test-event -i file://testdata/eventpattern.json -e fishnch
 
 eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
-   test-event -i file://testdata/eventpattern.json -e fishnchips-eventbridge-BetaFunctionEventListener
+   test-event \
+   	-i file://testdata/eventpattern.json \
+   	-e fishnchips-eventbridge-BetaFunctionEventListener
 
 eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
    test-event \
-   -i '{"version":"0", "id": "cwe-test", "account": "123456789012", "region": "eu-north-1", "time": "2017-04-11T20:11:04Z", "source": ["beta"], "detail": {"channel": ["web"]}, "detail-type": ["poc.succeeded"]}' \
-   -e fishnchips-eventbridge-BetaFunctionEventListener
+   	-i '{"version":"0", "id": "cwe-test", "account": "123456789012", "region": "eu-north-1", "time": "2017-04-11T20:11:04Z", "source": ["beta"], "detail": {"channel": ["web"]}, "detail-type": ["poc.succeeded"]}' \
+   	-e fishnchips-eventbridge-BetaFunctionEventListener
 ```
 
 
