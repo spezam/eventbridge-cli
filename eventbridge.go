@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
+	"github.com/fatih/color"
 )
 
 type eventbridgeClient struct {
@@ -22,6 +23,46 @@ func newEventbridgeClient(cfg aws.Config, eventBusName string) *eventbridgeClien
 		client:       eventbridge.NewFromConfig(cfg),
 		eventBusName: eventBusName,
 	}
+}
+
+func (e *eventbridgeClient) testEventPattern(ctx context.Context, inputEvent, eventRule string) error {
+	// list eventbridge rules filtered by prefix
+	resp, err := e.client.ListRules(ctx, &eventbridge.ListRulesInput{
+		EventBusName: &e.eventBusName,
+		NamePrefix:   aws.String(eventRule),
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(resp.Rules) < 1 {
+		log.Printf("no event rule with prefix: %s", eventRule)
+		return nil
+	}
+
+	log.Printf("event rules matching the event:")
+	for _, r := range resp.Rules {
+		// skip schedule rules since EventPattern is nil
+		if r.EventPattern == nil {
+			continue
+		}
+
+		res, err := e.client.TestEventPattern(ctx, &eventbridge.TestEventPatternInput{
+			Event:        aws.String(inputEvent),
+			EventPattern: r.EventPattern,
+		})
+		if err != nil {
+			return err
+		}
+
+		if *res.Result == false {
+			log.Printf("%s: %s", *r.Name, color.RedString("✘"))
+			continue
+		}
+		log.Printf("%s: %s", *r.Name, color.GreenString("✔"))
+	}
+
+	return nil
 }
 
 func (e *eventbridgeClient) createRule(ctx context.Context, eventPattern string) (string, error) {

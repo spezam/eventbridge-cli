@@ -17,6 +17,7 @@ Features:
 - Authentication via profile or env variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
 - Pretty JSON output
 - CI mode
+- Dry event test
 - ...
 
 ![screenshot](assets/screenshot.png)
@@ -164,6 +165,53 @@ eventbridge-cli -p myawsprofile -j \
    -e file://testdata/eventpattern.json \
    ci
 ```
+
+## Test Event Rule
+Test event payloads against deployed event rules on a specific eventbus.
+
+![screenshot](assets/screenshot_event-test.png)
+
+
+Given an optional bus (*global* flag `-b`) an event rule (*event-test* flag `-e`) and an input event (*event-test* flag `-i`), verifies the payload will match the rule.
+Rule is treated as prefix, so can be a subset of the rule name (ie. `-e fish` will test all rules starting with `fish`)
+
+Note: global flags are position sensitive and can't be used under 'event-test' command. For example:
+```sh
+eventbridge-cli -b somebus event-test
+```
+
+### Flags:
+```
+NAME:
+   eventbridge-cli test-event - AWS EventBridge test-event
+
+USAGE:
+   eventbridge-cli test-event [command options] [arguments...]
+
+DESCRIPTION:
+   run eventbridge-cli to test an event against a deployed event pattern
+
+OPTIONS:
+   --eventrule value, -e value   EventBridge rule name. Can be a prefix
+   --inputevent value, -i value  Input event. Can be prefixed by 'file://' or omitted if coming from other sources
+   --help, -h                    show help (default: false)
+```
+
+### Usage
+```sh
+eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
+   test-event -i file://testdata/eventpattern.json -e fishnch
+
+eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
+   test-event -i file://testdata/eventpattern.json -e fishnchips-eventbridge-BetaFunctionEventListener
+
+eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
+   test-event \
+   -i '{"version":"0", "id": "cwe-test", "account": "123456789012", "region": "eu-north-1", "time": "2017-04-11T20:11:04Z", "source": ["beta"], "detail": {"channel": ["web"]}, "detail-type": ["poc.succeeded"]}' \
+   -e fishnchips-eventbridge-BetaFunctionEventListener
+```
+
+
 
 ### Content-based Filtering with Event Patterns reference:
 https://docs.aws.amazon.com/eventbridge/latest/userguide/content-filtering-with-event-patterns.html
