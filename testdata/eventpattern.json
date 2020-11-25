@@ -1,9 +1,4 @@
 {
-    "version": "0",
-    "id": "cwe-test",
-    "account": "123456789012",
-    "region": "eu-north-1",
-    "time": "2017-04-11T20:11:04Z",
     "source": [
         "beta"
     ],

@@ -200,11 +200,11 @@ OPTIONS:
 ### Usage
 ```sh
 eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
-   test-event -i file://testdata/eventpattern.json -e fishnch
+   test-event -i file://testdata/event.json -e fishnch
 
 eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
    test-event \
-   	-i file://testdata/eventpattern.json \
+   	-i file://testdata/event.json \
    	-e fishnchips-eventbridge-BetaFunctionEventListener
 
 eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
