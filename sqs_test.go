@@ -23,7 +23,7 @@ type mockSQSclient struct {
 	err error
 
 	queueURL        *string
-	receiveMessages []*types.Message
+	receiveMessages []types.Message
 }
 
 const (
@@ -174,7 +174,7 @@ func Test_pollQueue(t *testing.T) {
 		{
 			name: "poll SQS queue",
 			client: &mockSQSclient{
-				receiveMessages: []*types.Message{
+				receiveMessages: []types.Message{
 					{
 						MessageId: aws.String("dc909f9a-377b-cc13-627d-6fdbc2ea458c"),
 						Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),
@@ -186,14 +186,14 @@ func Test_pollQueue(t *testing.T) {
 		{
 			name: "poll SQS queue - no messages",
 			client: &mockSQSclient{
-				receiveMessages: []*types.Message{},
+				receiveMessages: []types.Message{},
 			},
 			err: false,
 		},
 		{
 			name: "poll SQS queue - prettyJSON",
 			client: &mockSQSclient{
-				receiveMessages: []*types.Message{
+				receiveMessages: []types.Message{
 					{
 						MessageId: aws.String("dc909f9a-377b-cc13-627d-6fdbc2ea458c"),
 						Body:      aws.String(`{"detail-type":"Tag Change on Resource","source":"aws.tag"}`),

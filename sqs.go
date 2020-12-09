@@ -41,8 +41,8 @@ func newSQSClient(cfg aws.Config, accountID, queueName string) *sqsClient {
 func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 	resp, err := s.client.CreateQueue(ctx, &sqs.CreateQueueInput{
 		QueueName: aws.String(s.queueName),
-		Attributes: map[string]*string{
-			"Policy": aws.String(fmt.Sprintf(`{
+		Attributes: map[string]string{
+			"Policy": fmt.Sprintf(`{
 				"Version": "2012-10-17",
 				"Id": "%s",
 				"Statement": [{
@@ -59,7 +59,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 						}
 					}
 				}]
-			}`, runID, s.arn, ruleArn)),
+			}`, runID, s.arn, ruleArn),
 		},
 	})
 	if err != nil {
@@ -98,9 +98,9 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 		default:
 			resp, err := s.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 				QueueUrl:              aws.String(s.queueURL),
-				MaxNumberOfMessages:   aws.Int32(10),
-				WaitTimeSeconds:       aws.Int32(5),
-				MessageAttributeNames: []*string{aws.String("All")},
+				MaxNumberOfMessages:   10,
+				WaitTimeSeconds:       5,
+				MessageAttributeNames: []string{"All"},
 			})
 			// handle recovery from 'dial tcp' errors
 			if err != nil && strings.Contains(err.Error(), "dial tcp") {
@@ -120,9 +120,9 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 				continue
 			}
 
-			entries := []*types.DeleteMessageBatchRequestEntry{}
+			entries := []types.DeleteMessageBatchRequestEntry{}
 			for _, m := range resp.Messages {
-				entries = append(entries, &types.DeleteMessageBatchRequestEntry{
+				entries = append(entries, types.DeleteMessageBatchRequestEntry{
 					Id:            m.MessageId,
 					ReceiptHandle: m.ReceiptHandle,
 				})
@@ -171,9 +171,9 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 		default:
 			resp, err := s.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 				QueueUrl:              aws.String(s.queueURL),
-				MaxNumberOfMessages:   aws.Int32(10),
-				WaitTimeSeconds:       aws.Int32(5),
-				MessageAttributeNames: []*string{aws.String("All")},
+				MaxNumberOfMessages:   10,
+				WaitTimeSeconds:       5,
+				MessageAttributeNames: []string{"All"},
 			})
 			if err != nil {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
@@ -184,9 +184,9 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 				continue
 			}
 
-			entries := []*types.DeleteMessageBatchRequestEntry{}
+			entries := []types.DeleteMessageBatchRequestEntry{}
 			for _, m := range resp.Messages {
-				entries = append(entries, &types.DeleteMessageBatchRequestEntry{
+				entries = append(entries, types.DeleteMessageBatchRequestEntry{
 					Id:            m.MessageId,
 					ReceiptHandle: m.ReceiptHandle,
 				})

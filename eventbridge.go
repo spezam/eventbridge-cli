@@ -55,7 +55,7 @@ func (e *eventbridgeClient) testEventPattern(ctx context.Context, inputEvent, ev
 			return err
 		}
 
-		if *res.Result == false {
+		if res.Result == false {
 			log.Printf("%s: %s", *r.Name, color.RedString("✘"))
 			continue
 		}
@@ -84,7 +84,7 @@ func (e *eventbridgeClient) createRule(ctx context.Context, eventPattern string)
 func (e *eventbridgeClient) deleteRule(ctx context.Context) error {
 	_, err := e.client.DeleteRule(ctx, &eventbridge.DeleteRuleInput{
 		EventBusName: aws.String(e.eventBusName),
-		Force:        aws.Bool(true),
+		Force:        true,
 		Name:         aws.String(namespace + "-" + runID),
 	})
 	if err != nil {
@@ -108,7 +108,7 @@ func (e *eventbridgeClient) putEvent(ctx context.Context, event string) error {
 	}
 
 	resp, err := e.client.PutEvents(ctx, &eventbridge.PutEventsInput{
-		Entries: []*types.PutEventsRequestEntry{
+		Entries: []types.PutEventsRequestEntry{
 			{
 				Source:       aws.String(ev.Source),
 				Detail:       aws.String(ev.Detail),
@@ -121,7 +121,7 @@ func (e *eventbridgeClient) putEvent(ctx context.Context, event string) error {
 		return err
 	}
 
-	if *resp.FailedEntryCount > 0 {
+	if resp.FailedEntryCount > 0 {
 		return fmt.Errorf("%s", *resp.Entries[0].ErrorMessage)
 	}
 
@@ -132,7 +132,7 @@ func (e *eventbridgeClient) putTarget(ctx context.Context, sqsArn string) error 
 	_, err := e.client.PutTargets(ctx, &eventbridge.PutTargetsInput{
 		Rule:         aws.String(namespace + "-" + runID),
 		EventBusName: aws.String(e.eventBusName),
-		Targets: []*types.Target{
+		Targets: []types.Target{
 			{
 				Id:  aws.String(namespace + "-" + runID),
 				Arn: aws.String(sqsArn),
@@ -149,8 +149,8 @@ func (e *eventbridgeClient) putTarget(ctx context.Context, sqsArn string) error 
 
 func (e *eventbridgeClient) removeTarget(ctx context.Context) error {
 	_, err := e.client.RemoveTargets(ctx, &eventbridge.RemoveTargetsInput{
-		Ids: []*string{
-			aws.String(namespace + "-" + runID),
+		Ids: []string{
+			namespace + "-" + runID,
 		},
 		Rule:         aws.String(namespace + "-" + runID),
 		EventBusName: aws.String(e.eventBusName),
