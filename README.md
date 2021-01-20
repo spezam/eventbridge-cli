@@ -28,9 +28,9 @@ wget https://github.com/spezam/eventbridge-cli/releases/download/<version>/event
 tar xvfz eventbridge-cli_<version>_darwin_amd64.tar.gz
 mv eventbridge-cli /somewhere/in/PATH
 ```
-### with go install
+### with go install (installed in $GOBIN)
 ```
-GOBIN=$PWD/bin GO111MODULE=on go install github.com/spezam/eventbridge-cli
+GO111MODULE=on go install github.com/spezam/eventbridge-cli
 ```
 ### or build from source:
 ```
