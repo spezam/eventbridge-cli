@@ -25,7 +25,7 @@ var (
 func main() {
 	app := &cli.App{
 		Name:    namespace,
-		Version: "1.5.0",
+		Version: "1.6.0",
 		Usage:   "AWS EventBridge cli",
 		Authors: []*cli.Author{
 			{Name: "matteo ridolfi"},
@@ -195,20 +195,18 @@ func runTestEventPattern(c *cli.Context) error {
 
 func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, error) {
 	var awsCfg aws.Config
-	// var configs []config.Config
+	var err error
 
-	// use profile if present
+	// use profile if present as cli parameter
 	if profile != "" {
-		awsCfg, err := config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile(profile))
-		if err != nil {
-			return awsCfg, err
-		}
+		awsCfg, err = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile(profile))
+	} else {
+		awsCfg, err = config.LoadDefaultConfig(ctx)
 	}
-
-	awsCfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return awsCfg, err
 	}
+
 	// check credentials validity
 	if _, err := awsCfg.Credentials.Retrieve(ctx); err != nil {
 		return awsCfg, err
