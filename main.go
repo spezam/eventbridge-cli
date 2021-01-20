@@ -195,14 +195,17 @@ func runTestEventPattern(c *cli.Context) error {
 
 func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, error) {
 	var awsCfg aws.Config
-	var configs []config.Config
+	// var configs []config.Config
 
 	// use profile if present
 	if profile != "" {
-		configs = append(configs, config.WithSharedConfigProfile(profile))
+		awsCfg, err := config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile(profile))
+		if err != nil {
+			return awsCfg, err
+		}
 	}
 
-	awsCfg, err := config.LoadDefaultConfig(configs...)
+	awsCfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return awsCfg, err
 	}
