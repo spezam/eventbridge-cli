@@ -16,8 +16,8 @@ github.com/aws/aws-sdk-go-v2/service/eventbridge v1.1.0 h1:VP1Wkcvw9UlzWnNUljsn4
 github.com/aws/aws-sdk-go-v2/service/eventbridge v1.1.0/go.mod h1:byM5LFV6QQ3U/OQvCO6J/9JcAazqMK/7tPF8sVFn48g=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.0.0 h1:IAutMPSrynpvKOpHG6HyWHmh1xmxWAmYOK84NrQVqVQ=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.0.0/go.mod h1:3jExOmpbjgPnz2FJaMOfbSk1heTkZ66aD3yNtVhnjvI=
-github.com/aws/aws-sdk-go-v2/service/sqs v1.0.0 h1:k+iXUEMp688JqUcxb4/bzt7xgJX4TLqahrwgWA/qO6E=
-github.com/aws/aws-sdk-go-v2/service/sqs v1.0.0/go.mod h1:w5BclCU8ptTbagzXS/fHBr+vAyXUjggg/72qDIURKMk=
+github.com/aws/aws-sdk-go-v2/service/sqs v1.1.0 h1:y2g2NUjm0lJCl/pqnICB+rWYxaGrTQdFJbbQn3l4n3w=
+github.com/aws/aws-sdk-go-v2/service/sqs v1.1.0/go.mod h1:eegUYm2QRvTXZHxoJVJb++B9KuuwY9FlEN8M1m4UGdQ=
 github.com/aws/aws-sdk-go-v2/service/sts v1.0.0 h1:6XCgxNfE4L/Fnq+InhVNd16DKc6Ue1f3dJl3IwwJRUQ=
 github.com/aws/aws-sdk-go-v2/service/sts v1.0.0/go.mod h1:5f+cELGATgill5Pu3/vK3Ebuigstc+qYEHW5MvGWZO4=
 github.com/aws/smithy-go v1.0.0 h1:hkhcRKG9rJ4Fn+RbfXY7Tz7b3ITLDyolBnLLBhwbg/c=
