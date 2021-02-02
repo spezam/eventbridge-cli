@@ -12,8 +12,8 @@ github.com/aws/aws-sdk-go-v2/credentials v1.0.0 h1:0M7netgZ8gCV4v7z1km+Fbl7j6KQY
 github.com/aws/aws-sdk-go-v2/credentials v1.0.0/go.mod h1:/SvsiqBf509hG4Bddigr3NB12MIpfHhZapyBurJe8aY=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.0.0 h1:lO7fH5n7Q1dKcDBpuTmwJylD1bOQiRig8LI6TD9yVQk=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.0.0/go.mod h1:wpMHDCXvOXZxGCRSidyepa8uJHY4vaBGfY2/+oKU/Bc=
-github.com/aws/aws-sdk-go-v2/service/eventbridge v1.0.0 h1:C2qFlusiNY6DPw9njBtkvAhaZquUZHLuVZOqoChHPEk=
-github.com/aws/aws-sdk-go-v2/service/eventbridge v1.0.0/go.mod h1:lm0WQnqok+6mgGy8Yzx6nbXwP+LFvxhi8rfa/09TAkU=
+github.com/aws/aws-sdk-go-v2/service/eventbridge v1.1.0 h1:VP1Wkcvw9UlzWnNUljsn4j0s6QsbJxb3kVdzLf0Ge/o=
+github.com/aws/aws-sdk-go-v2/service/eventbridge v1.1.0/go.mod h1:byM5LFV6QQ3U/OQvCO6J/9JcAazqMK/7tPF8sVFn48g=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.0.0 h1:IAutMPSrynpvKOpHG6HyWHmh1xmxWAmYOK84NrQVqVQ=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.0.0/go.mod h1:3jExOmpbjgPnz2FJaMOfbSk1heTkZ66aD3yNtVhnjvI=
 github.com/aws/aws-sdk-go-v2/service/sqs v1.0.0 h1:k+iXUEMp688JqUcxb4/bzt7xgJX4TLqahrwgWA/qO6E=
