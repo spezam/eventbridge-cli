@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
-	github.com/aws/aws-sdk-go-v2 v1.2.0
+	github.com/aws/aws-sdk-go-v2 v1.3.0
 	github.com/aws/aws-sdk-go-v2/config v1.1.1
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.1.1
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.1.1
