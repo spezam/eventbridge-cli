@@ -60,6 +60,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 					}
 				}]
 			}`, runID, s.arn, ruleArn),
+			"SqsManagedSseEnabled": "true",
 		},
 	})
 	if err != nil {
