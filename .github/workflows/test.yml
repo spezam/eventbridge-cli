@@ -20,8 +20,6 @@ jobs:
     - name: install Go
       uses: actions/setup-go@master
       with:
-        # allow to run against pre-releases
-        stable: false
         go-version: ${{ matrix.go }}
 
     - name: checkout code
