@@ -11,11 +11,12 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/google/uuid v1.3.0
 	github.com/stretchr/testify v1.7.0
-	github.com/urfave/cli/v2 v2.4.0
+	github.com/urfave/cli/v2 v2.8.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
+	github.com/antzucaro/matchr v0.0.0-20210222213004-b04723ef80f0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.11.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.2 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.8 // indirect
