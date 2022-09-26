@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
-	github.com/aws/aws-sdk-go-v2 v1.16.1
+	github.com/aws/aws-sdk-go-v2 v1.16.16
 	github.com/aws/aws-sdk-go-v2/config v1.15.2
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.15.3
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.18.2
@@ -24,7 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.2 // indirect
-	github.com/aws/smithy-go v1.11.2 // indirect
+	github.com/aws/smithy-go v1.13.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/hokaccha/go-prettyjson v0.0.0-20210113012101-fb4e108d2519 // indirect
