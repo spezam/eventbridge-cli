@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.8
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.17.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.20.0
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.14.1
 	github.com/google/uuid v1.3.0
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.23.7
