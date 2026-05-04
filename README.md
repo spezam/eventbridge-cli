@@ -6,9 +6,8 @@
 Amazon EventBridge is a serverless event bus that makes it easy to connect applications together using data from your own applications, integrated Software-as-a-Service (SaaS) applications, and AWS services.
 
 Eventbridge-cli is a tool to listen to EventBus events. Useful for debugging, event pattern testing, CI pipelines integration.
-```mermaid
-flowchart LR
-    EventBus --> EventBridgeRule["EventBridge Rule"] --> SQS <-- poller
+```
+EventBus --> EventBrige Rule --> SQS <-- poller
 ```
 
 Features:
