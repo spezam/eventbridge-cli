@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/google/uuid"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -23,37 +23,35 @@ var (
 )
 
 func main() {
-	app := &cli.App{
+	app := &cli.Command{
 		Name:    namespace,
 		Version: "1.12.0",
 		Usage:   "AWS EventBridge cli",
-		Authors: []*cli.Author{
-			{Name: "matteo ridolfi"},
-		},
+		Authors: []any{"matteo ridolfi"},
 		Action:   run,
 		Flags:    flags,
 		Commands: commands,
 	}
 
-	err := app.Run(os.Args)
+	err := app.Run(context.Background(), os.Args)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 }
 
-func run(c *cli.Context) error {
+func run(ctx context.Context, cmd *cli.Command) error {
 	// AWS config
-	awsCfg, err := newAWSConfig(c.Context, c.String("profile"), c.String("region"))
+	awsCfg, err := newAWSConfig(ctx, cmd.String("profile"), cmd.String("region"))
 	if err != nil {
 		return err
 	}
 
 	// eventbridge client
-	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
-	ebClient := newEventbridgeClient(awsCfg, c.String("eventbusname"))
+	log.Printf("creating eventBridge client for bus [%s]", cmd.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"))
 
 	// create temporary eventbridge event rule
-	eventpattern := c.String("eventpattern")
+	eventpattern := cmd.String("eventpattern")
 	switch {
 	case strings.HasPrefix(eventpattern, "file://"):
 		eventpattern, err = dataFromFile(eventpattern)
@@ -69,7 +67,7 @@ func run(c *cli.Context) error {
 	}
 
 	log.Printf("creating temporary rule on bus [%s]: %s", ebClient.eventBusName, eventpattern)
-	ruleArn, err := ebClient.createRule(c.Context, eventpattern)
+	ruleArn, err := ebClient.createRule(ctx, eventpattern)
 	if err != nil {
 		return err
 	}
@@ -81,21 +79,21 @@ func run(c *cli.Context) error {
 	sqsClient := newSQSClient(awsCfg, accountID, queueName)
 
 	// SQS queue
-	if err := sqsClient.createQueue(c.Context, ruleArn); err != nil {
+	if err := sqsClient.createQueue(ctx, ruleArn); err != nil {
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		_ = ebClient.deleteRule(c.Context)
+		_ = ebClient.deleteRule(ctx)
 
 		return err
 	}
 	log.Printf("created temporary SQS queue with URL: %s", sqsClient.queueURL)
 
 	// EventBus --> SQS
-	if err := ebClient.putTarget(c.Context, sqsClient.arn); err != nil {
+	if err := ebClient.putTarget(ctx, sqsClient.arn); err != nil {
 		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-		_ = sqsClient.deleteQueue(c.Context)
+		_ = sqsClient.deleteQueue(ctx)
 
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		_ = ebClient.deleteRule(c.Context)
+		_ = ebClient.deleteRule(ctx)
 
 		return err
 	}
@@ -104,27 +102,27 @@ func run(c *cli.Context) error {
 	// defer cleanup resources
 	defer func() {
 		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-		_ = sqsClient.deleteQueue(c.Context)
+		_ = sqsClient.deleteQueue(ctx)
 
 		log.Printf("removing EventBus target...")
-		_ = ebClient.removeTarget(c.Context)
+		_ = ebClient.removeTarget(ctx)
 
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		_ = ebClient.deleteRule(c.Context)
+		_ = ebClient.deleteRule(ctx)
 	}()
 
 	// switch between CI and standard modes
-	switch c.Command.Name {
+	switch cmd.Name {
 	case "ci":
 		log.Printf("CI mode")
 
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt)
 		// poll SQS queue undefinitely
-		go sqsClient.pollQueueCI(c.Context, signalChan, c.Bool("prettyjson"), c.Int64("timeout"))
+		go sqsClient.pollQueueCI(ctx, signalChan, cmd.Bool("prettyjson"), cmd.Int64("timeout"))
 
 		// read input event from cli or file
-		event := c.String("inputevent")
+		event := cmd.String("inputevent")
 		if event != "" {
 			if strings.HasPrefix(event, "file://") {
 				event, err = dataFromFile(event)
@@ -135,14 +133,14 @@ func run(c *cli.Context) error {
 
 			//time.Sleep(2 * time.Second) // might be needed if too fast
 			// put event
-			if err := ebClient.putEvent(c.Context, event); err != nil {
+			if err := ebClient.putEvent(ctx, event); err != nil {
 				return err
 			}
 		}
 
 		select {
-		case <-time.After(time.Duration(c.Int64("timeout")) * time.Second):
-			log.Printf("%d seconds timeout reached", c.Int64("timeout"))
+		case <-time.After(time.Duration(cmd.Int64("timeout")) * time.Second):
+			log.Printf("%d seconds timeout reached", cmd.Int64("timeout"))
 
 			signalChan <- os.Interrupt
 			return fmt.Errorf("CI failed - didn't receive any event")
@@ -156,7 +154,7 @@ func run(c *cli.Context) error {
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt)
 		// poll SQS queue undefinitely
-		go sqsClient.pollQueue(c.Context, signalChan, c.Bool("prettyjson"))
+		go sqsClient.pollQueue(ctx, signalChan, cmd.Bool("prettyjson"))
 
 		// wait for a SIGINT (ie. CTRL-C)
 		<-signalChan
@@ -166,18 +164,18 @@ func run(c *cli.Context) error {
 	return nil
 }
 
-func runTestEventPattern(c *cli.Context) error {
+func runTestEventPattern(ctx context.Context, cmd *cli.Command) error {
 	// AWS config
-	awsCfg, err := newAWSConfig(c.Context, c.String("profile"), c.String("region"))
+	awsCfg, err := newAWSConfig(ctx, cmd.String("profile"), cmd.String("region"))
 	if err != nil {
 		return err
 	}
 
 	// eventbridge client
-	log.Printf("creating eventBridge client for bus [%s]", c.String("eventbusname"))
-	ebClient := newEventbridgeClient(awsCfg, c.String("eventbusname"))
+	log.Printf("creating eventBridge client for bus [%s]", cmd.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"))
 
-	inputevent := c.String("inputevent")
+	inputevent := cmd.String("inputevent")
 	if strings.HasPrefix(inputevent, "file://") {
 		inputevent, err = dataFromFile(inputevent)
 		if err != nil {
@@ -185,7 +183,7 @@ func runTestEventPattern(c *cli.Context) error {
 		}
 	}
 
-	err = ebClient.testEventPattern(c.Context, inputevent, c.String("eventrule"))
+	err = ebClient.testEventPattern(ctx, inputevent, cmd.String("eventrule"))
 	if err != nil {
 		return err
 	}

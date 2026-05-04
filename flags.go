@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var flags = []cli.Flag{
@@ -11,13 +11,13 @@ var flags = []cli.Flag{
 		Name:    "profile",
 		Aliases: []string{"p"},
 		Usage:   "AWS profile",
-		EnvVars: []string{"AWS_PROFILE"},
+		Sources: cli.EnvVars("AWS_PROFILE"),
 	},
 	&cli.StringFlag{
 		Name:    "region",
 		Aliases: []string{"r"},
 		Usage:   "AWS region",
-		EnvVars: []string{"AWS_DEFAULT_REGION", "AWS_REGION"},
+		Sources: cli.EnvVars("AWS_DEFAULT_REGION", "AWS_REGION"),
 	},
 	&cli.StringFlag{
 		Name:    "eventbusname",

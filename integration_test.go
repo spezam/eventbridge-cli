@@ -3,12 +3,12 @@
 package main
 
 import (
-	"flag"
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 func Test_integration(t *testing.T) {
@@ -49,19 +49,23 @@ func Test_integration(t *testing.T) {
 			// override global runID as the value doesn't refresh for each iteration
 			runID = uuid.New().String()
 
-			app := cli.NewApp()
-			// flags
-			set := flag.NewFlagSet("integration-test", 0)
-			set.String("eventbusname", test.eventbusname, "")
-			set.String("eventpattern", test.eventpattern, "")
-			set.Bool("prettyjson", true, "")
-			// ci flags
-			set.Int64("timeout", 8, "")
-			set.String("inputevent", test.inputevent, "")
+			app := &cli.Command{
+				Name:     namespace,
+				Action:   run,
+				Flags:    flags,
+				Commands: commands,
+			}
 
-			c := cli.NewContext(app, set, nil)
-			c.Command.Name = "ci"
-			err := run(c)
+			err := app.Run(context.Background(), []string{
+				namespace,
+				"ci",
+				"--eventbusname", test.eventbusname,
+				"--eventpattern", test.eventpattern,
+				"--inputevent", test.inputevent,
+				"--prettyjson",
+				"--timeout", "8",
+			})
+
 			if test.err {
 				assert.Error(t, err)
 				return
