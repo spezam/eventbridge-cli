@@ -134,12 +134,19 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	case "ci":
 		log.Printf("CI mode")
 
+		pollCtx, cancelPoll := context.WithCancel(ctx)
+		defer cancelPoll()
+
 		signalChan := make(chan os.Signal, 1)
 		doneChan := make(chan struct{})
+		readyChan := make(chan struct{})
 		signal.Notify(signalChan, os.Interrupt)
 		defer signal.Stop(signalChan)
-		// poll SQS queue undefinitely
-		go sqsClient.pollQueueCI(ctx, signalChan, doneChan, cmd.Bool("prettyjson"), cmd.Int64("timeout"))
+		// poll SQS queue until event received or timeout
+		go sqsClient.pollQueueCI(pollCtx, signalChan, doneChan, readyChan, cmd.Bool("prettyjson"), cmd.Int64("timeout"))
+
+		// wait for poller to start before sending the event
+		<-readyChan
 
 		// read input event from cli or file
 		event := cmd.String("inputevent")

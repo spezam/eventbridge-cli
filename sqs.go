@@ -154,15 +154,19 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, do
 	}
 }
 
-func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, doneChan chan struct{}, prettyJSON bool, timeout int64) {
+func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, doneChan chan struct{}, readyChan chan struct{}, prettyJSON bool, timeout int64) {
 	log.Printf("polling queue %s ...", s.queueURL)
 	defer close(doneChan)
+	close(readyChan)
 
 	for {
 		// goroutine
 		select {
 		case <-signalChan:
 			log.Printf("stopping poller...")
+			return
+
+		case <-ctx.Done():
 			return
 
 		default:
@@ -172,6 +176,10 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 				WaitTimeSeconds:       sqsWaitSeconds,
 				MessageAttributeNames: []string{"All"},
 			})
+			// context cancelled — clean exit
+			if err != nil && ctx.Err() != nil {
+				return
+			}
 			// handle recovery from 'dial tcp' errors
 			if err != nil && strings.Contains(err.Error(), "dial tcp") {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
