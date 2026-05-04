@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TylerBrock/colorjson"
+	"bytes"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/neilotoole/jsoncolor"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
@@ -129,17 +131,7 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 				})
 
 				if prettyJSON {
-					var j map[string]interface{}
-					err := json.Unmarshal([]byte(*m.Body), &j)
-					if err != nil {
-						return
-					}
-
-					f := colorjson.NewFormatter()
-					f.Indent = 2
-					pj, _ := f.Marshal(j)
-
-					log.Println(string(pj))
+					log.Println(colorJSON(*m.Body))
 					continue
 				}
 
@@ -193,17 +185,7 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 				})
 
 				if prettyJSON {
-					var j map[string]interface{}
-					err := json.Unmarshal([]byte(*m.Body), &j)
-					if err != nil {
-						return
-					}
-
-					f := colorjson.NewFormatter()
-					f.Indent = 2
-					pj, _ := f.Marshal(j)
-
-					log.Printf("received event: %s", string(pj))
+					log.Printf("received event: %s", colorJSON(*m.Body))
 					continue
 				}
 
@@ -222,4 +204,19 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 			return
 		}
 	}
+}
+
+func colorJSON(body string) string {
+	var v interface{}
+	if err := json.Unmarshal([]byte(body), &v); err != nil {
+		return body
+	}
+	buf := &bytes.Buffer{}
+	enc := jsoncolor.NewEncoder(buf)
+	enc.SetColors(jsoncolor.DefaultColors())
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(v); err != nil {
+		return body
+	}
+	return buf.String()
 }
