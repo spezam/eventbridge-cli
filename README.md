@@ -49,7 +49,7 @@ USAGE:
    eventbridge [global options] command [command options] [arguments...]
 
 VERSION:
-   1.0.0
+   2.0.0
 
 AUTHOR:
    matteo ridolfi

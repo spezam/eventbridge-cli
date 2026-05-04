@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,10 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TylerBrock/colorjson"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/neilotoole/jsoncolor"
+)
+
+const (
+	sqsMaxMessages  = 10
+	sqsWaitSeconds  = 5
 )
 
 type sqsClient struct {
@@ -46,7 +52,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 				"Version": "2012-10-17",
 				"Id": "%s",
 				"Statement": [{
-					"Sid": "Sid1579089564623",
+					"Sid": "AllowEventBridgeToSendMessage-%s",
 					"Effect": "Allow",
 					"Principal": {
 						"Service": "events.amazonaws.com"
@@ -59,7 +65,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 						}
 					}
 				}]
-			}`, runID, s.arn, ruleArn),
+			}`, runID, runID, s.arn, ruleArn),
 			"SqsManagedSseEnabled": "true",
 		},
 	})
@@ -69,7 +75,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 	}
 
 	s.queueURL = *resp.QueueUrl
-	return err
+	return nil
 }
 
 func (s *sqsClient) deleteQueue(ctx context.Context) error {
@@ -81,13 +87,13 @@ func (s *sqsClient) deleteQueue(ctx context.Context) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
-func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, prettyJSON bool) {
+func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, doneChan chan struct{}, prettyJSON bool) {
 	log.Printf("polling queue %s ...", s.queueURL)
-	log.Printf("press ctr+c to stop")
-	defer close(signalChan)
+	log.Printf("press ctrl+c to stop")
+	defer close(doneChan)
 
 	for {
 		// goroutine
@@ -99,8 +105,8 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 		default:
 			resp, err := s.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 				QueueUrl:              aws.String(s.queueURL),
-				MaxNumberOfMessages:   10,
-				WaitTimeSeconds:       5,
+				MaxNumberOfMessages:   sqsMaxMessages,
+				WaitTimeSeconds:       sqsWaitSeconds,
 				MessageAttributeNames: []string{"All"},
 			})
 			// handle recovery from 'dial tcp' errors
@@ -129,17 +135,7 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 				})
 
 				if prettyJSON {
-					var j map[string]interface{}
-					err := json.Unmarshal([]byte(*m.Body), &j)
-					if err != nil {
-						return
-					}
-
-					f := colorjson.NewFormatter()
-					f.Indent = 2
-					pj, _ := f.Marshal(j)
-
-					log.Println(string(pj))
+					log.Println(colorJSON(*m.Body))
 					continue
 				}
 
@@ -158,9 +154,9 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 	}
 }
 
-func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, prettyJSON bool, timeout int64) {
+func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, doneChan chan struct{}, prettyJSON bool, timeout int64) {
 	log.Printf("polling queue %s ...", s.queueURL)
-	defer close(signalChan)
+	defer close(doneChan)
 
 	for {
 		// goroutine
@@ -172,10 +168,17 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 		default:
 			resp, err := s.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 				QueueUrl:              aws.String(s.queueURL),
-				MaxNumberOfMessages:   10,
-				WaitTimeSeconds:       5,
+				MaxNumberOfMessages:   sqsMaxMessages,
+				WaitTimeSeconds:       sqsWaitSeconds,
 				MessageAttributeNames: []string{"All"},
 			})
+			// handle recovery from 'dial tcp' errors
+			if err != nil && strings.Contains(err.Error(), "dial tcp") {
+				log.Printf("sqs.ReceiveMessage error: %s", err)
+				time.Sleep(10 * time.Second)
+				continue
+			}
+			// handle all other errors
 			if err != nil {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
 				return
@@ -193,17 +196,7 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 				})
 
 				if prettyJSON {
-					var j map[string]interface{}
-					err := json.Unmarshal([]byte(*m.Body), &j)
-					if err != nil {
-						return
-					}
-
-					f := colorjson.NewFormatter()
-					f.Indent = 2
-					pj, _ := f.Marshal(j)
-
-					log.Printf("received event: %s", string(pj))
+					log.Printf("received event: %s", colorJSON(*m.Body))
 					continue
 				}
 
@@ -222,4 +215,19 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 			return
 		}
 	}
+}
+
+func colorJSON(body string) string {
+	var v interface{}
+	if err := json.Unmarshal([]byte(body), &v); err != nil {
+		return body
+	}
+	buf := &bytes.Buffer{}
+	enc := jsoncolor.NewEncoder(buf)
+	enc.SetColors(jsoncolor.DefaultColors())
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(v); err != nil {
+		return body
+	}
+	return buf.String()
 }

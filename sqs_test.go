@@ -5,7 +5,7 @@ package main
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"testing"
@@ -20,7 +20,8 @@ import (
 var _ sqsClientAPI = (*mockSQSclient)(nil)
 
 type mockSQSclient struct {
-	err error
+	err            error
+	deleteBatchErr error
 
 	queueURL        *string
 	receiveMessages []types.Message
@@ -35,7 +36,7 @@ const (
 
 func init() {
 	// disable logger
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 }
 
 func (m *mockSQSclient) CreateQueue(ctx context.Context, params *sqs.CreateQueueInput, optFns ...func(*sqs.Options)) (*sqs.CreateQueueOutput, error) {
@@ -55,7 +56,7 @@ func (m *mockSQSclient) ReceiveMessage(ctx context.Context, params *sqs.ReceiveM
 }
 
 func (m *mockSQSclient) DeleteMessageBatch(ctx context.Context, params *sqs.DeleteMessageBatchInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageBatchOutput, error) {
-	return &sqs.DeleteMessageBatchOutput{}, m.err
+	return &sqs.DeleteMessageBatchOutput{}, m.deleteBatchErr
 }
 
 func Test_createQueue(t *testing.T) {
@@ -157,22 +158,22 @@ func Test_pollQueueCancel(t *testing.T) {
 	t.Run("stopping poller", func(t *testing.T) {
 		client := sqsClient{}
 		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
 
-		go client.pollQueue(context.Background(), signalChan, false)
+		go client.pollQueue(context.Background(), signalChan, doneChan, false)
 		signalChan <- os.Interrupt
+		<-doneChan
 	})
 }
 
 func Test_pollQueue(t *testing.T) {
 	tests := []struct {
-		name string
-
-		client *mockSQSclient
-
-		err bool
+		name       string
+		client     *mockSQSclient
+		prettyJSON bool
 	}{
 		{
-			name: "poll SQS queue",
+			name: "poll SQS queue - plain",
 			client: &mockSQSclient{
 				receiveMessages: []types.Message{
 					{
@@ -181,14 +182,7 @@ func Test_pollQueue(t *testing.T) {
 					},
 				},
 			},
-			err: false,
-		},
-		{
-			name: "poll SQS queue - no messages",
-			client: &mockSQSclient{
-				receiveMessages: []types.Message{},
-			},
-			err: false,
+			prettyJSON: false,
 		},
 		{
 			name: "poll SQS queue - prettyJSON",
@@ -200,22 +194,204 @@ func Test_pollQueue(t *testing.T) {
 					},
 				},
 			},
-			err: false,
+			prettyJSON: true,
+		},
+		{
+			name: "poll SQS queue - no messages",
+			client: &mockSQSclient{
+				receiveMessages: []types.Message{},
+			},
+			prettyJSON: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			signalChan := make(chan os.Signal, 1)
+			doneChan := make(chan struct{})
 			client := &sqsClient{
 				client:   test.client,
 				queueURL: queueURL,
 			}
 
-			go client.pollQueue(context.Background(), signalChan, true)
+			go client.pollQueue(context.Background(), signalChan, doneChan, test.prettyJSON)
 
 			time.Sleep(2 * time.Second)
 			signalChan <- os.Interrupt
+			<-doneChan
 		})
 	}
+}
+
+func Test_pollQueueReceiveError(t *testing.T) {
+	t.Run("receive error stops poller", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client:   &mockSQSclient{err: errors.New("some AWS error")},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueue(context.Background(), signalChan, doneChan, false)
+
+		select {
+		case <-doneChan:
+			// success - poller exited on non-retryable error
+		case <-time.After(5 * time.Second):
+			t.Fatal("timeout: doneChan not closed after receive error")
+		}
+	})
+
+	t.Run("DeleteMessageBatch error is logged and poller continues", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client: &mockSQSclient{
+				receiveMessages: []types.Message{
+					{
+						MessageId: aws.String("test-id"),
+						Body:      aws.String(`{"source":"test"}`),
+					},
+				},
+				deleteBatchErr: errors.New("delete batch error"),
+			},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueue(context.Background(), signalChan, doneChan, false)
+
+		time.Sleep(500 * time.Millisecond)
+		signalChan <- os.Interrupt
+		<-doneChan
+	})
+}
+
+func Test_pollQueueCI(t *testing.T) {
+	t.Run("message received closes doneChan", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client: &mockSQSclient{
+				receiveMessages: []types.Message{
+					{
+						MessageId: aws.String("test-id"),
+						Body:      aws.String(`{"source":"test"}`),
+					},
+				},
+			},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+
+		select {
+		case <-doneChan:
+			// success
+		case <-time.After(5 * time.Second):
+			t.Fatal("timeout: doneChan was not closed after message received")
+		}
+	})
+
+	t.Run("signal stops poller without panic", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client:   &mockSQSclient{receiveMessages: []types.Message{}},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+		signalChan <- os.Interrupt
+
+		select {
+		case <-doneChan:
+			// success - no panic
+		case <-time.After(5 * time.Second):
+			t.Fatal("timeout: doneChan was not closed after signal")
+		}
+	})
+
+	t.Run("message received with prettyJSON", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client: &mockSQSclient{
+				receiveMessages: []types.Message{
+					{
+						MessageId: aws.String("test-id"),
+						Body:      aws.String(`{"source":"test","detail-type":"MyEvent"}`),
+					},
+				},
+			},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, true, 10)
+
+		select {
+		case <-doneChan:
+			// success
+		case <-time.After(5 * time.Second):
+			t.Fatal("timeout: doneChan was not closed after message received")
+		}
+	})
+
+	t.Run("receive error stops poller", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client:   &mockSQSclient{err: errors.New("some AWS error")},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+
+		select {
+		case <-doneChan:
+			// success - poller exited on non-retryable error
+		case <-time.After(5 * time.Second):
+			t.Fatal("timeout: doneChan not closed after receive error")
+		}
+	})
+
+	t.Run("DeleteMessageBatch error still closes doneChan", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client: &mockSQSclient{
+				receiveMessages: []types.Message{
+					{
+						MessageId: aws.String("test-id"),
+						Body:      aws.String(`{"source":"test"}`),
+					},
+				},
+				deleteBatchErr: errors.New("delete batch error"),
+			},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+
+		select {
+		case <-doneChan:
+			// success - poller exits after processing even if batch delete fails
+		case <-time.After(5 * time.Second):
+			t.Fatal("timeout: doneChan not closed after DeleteMessageBatch error")
+		}
+	})
+}
+
+func Test_colorJSON(t *testing.T) {
+	t.Run("valid JSON returns formatted output", func(t *testing.T) {
+		input := `{"source":"aws.tag","detail-type":"Tag Change on Resource"}`
+		result := colorJSON(input)
+		assert.Contains(t, result, "source")
+		assert.Contains(t, result, "aws.tag")
+	})
+
+	t.Run("invalid JSON returns original body", func(t *testing.T) {
+		input := "not valid json"
+		result := colorJSON(input)
+		assert.Equal(t, input, result)
+	})
 }

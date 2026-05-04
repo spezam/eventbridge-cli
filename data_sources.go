@@ -2,8 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 
@@ -29,44 +28,41 @@ type samTemplate struct {
 
 // file://eventpattern.json
 func dataFromFile(filepath string) (string, error) {
-	file := strings.Replace(filepath, "file://", "", -1)
-
-	e, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(strings.TrimPrefix(filepath, "file://"))
 	if err != nil {
 		return "", err
 	}
 
-	return string(e), nil
+	return string(content), nil
 }
 
 // sam://template.yaml/FunctionName
 func dataFromSAM(sampath string) (string, error) {
 	function := path.Base(sampath)
-	template := strings.Replace(sampath, "sam://", "", -1)
-	template = strings.Replace(template, fmt.Sprintf("/%s", function), "", -1)
+	template := strings.TrimSuffix(strings.TrimPrefix(sampath, "sam://"), "/"+function)
 
-	e, err := ioutil.ReadFile(template)
+	content, err := os.ReadFile(template)
 	if err != nil {
 		return "", err
 	}
 
 	// unmarshal SAM template
 	b := &samTemplate{}
-	if err := yaml.Unmarshal([]byte(e), &b); err != nil {
+	if err := yaml.Unmarshal(content, b); err != nil {
 		return "", err
 	}
 
 	// find EventBridgeRule and marshal to JSON
-	var p []byte
+	var pattern []byte
 	for _, e := range b.Resources[function].Properties.Events {
 		if e.Type == "EventBridgeRule" {
-			if p, err = json.Marshal(convertMap(e.Properties.Pattern)); err != nil {
+			if pattern, err = json.Marshal(convertMap(e.Properties.Pattern)); err != nil {
 				return "", err
 			}
 		}
 	}
 
-	return string(p), nil
+	return string(pattern), nil
 }
 
 // convert map[interface{}]interface{} to map[string]interface{}
