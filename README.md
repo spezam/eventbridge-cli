@@ -5,9 +5,10 @@
 
 Amazon EventBridge is a serverless event bus that makes it easy to connect applications together using data from your own applications, integrated Software-as-a-Service (SaaS) applications, and AWS services.
 
-Eventbridge-cli is a tool to listen to an EventBus events. Useful for debugging, event pattern testing, CI pipelines integration.
-```
-EventBus --> EventBrige Rule --> SQS <-- poller
+Eventbridge-cli is a tool to listen to EventBus events. Useful for debugging, event pattern testing, CI pipelines integration.
+```mermaid
+flowchart LR
+    EventBus --> EventBridgeRule["EventBridge Rule"] --> SQS <-- poller
 ```
 
 Features:
@@ -22,17 +23,18 @@ Features:
 
 ![screenshot](assets/screenshot.png)
 
-### Install from releases binary:
+## Install
+### From releases binary:
 ```
 wget https://github.com/spezam/eventbridge-cli/releases/download/<version>/eventbridge-cli_<version>_darwin_amd64.tar.gz
 tar xvfz eventbridge-cli_<version>_darwin_amd64.tar.gz
 mv eventbridge-cli /somewhere/in/PATH
 ```
-### with go install
+### With go install
 ```
-GO111MODULE=on go install github.com/spezam/eventbridge-cli
+go install github.com/spezam/eventbridge-cli@latest
 ```
-### or build from source:
+### Or build from source
 ```
 git clone https://github.com/spezam/eventbridge-cli.git
 cd eventbridge-cli
@@ -215,7 +217,7 @@ eventbridge-cli -p myawsprofile -b fishnchips-eventbus \
 
 
 
-### Content-based Filtering with Event Patterns reference:
+## Content-based Filtering with Event Patterns
 https://docs.aws.amazon.com/eventbridge/latest/userguide/content-filtering-with-event-patterns.html
 
 Here is a summary of all the comparison operators available in EventBridge:
