@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,12 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"bytes"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/neilotoole/jsoncolor"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/neilotoole/jsoncolor"
+)
+
+const (
+	sqsMaxMessages  = 10
+	sqsWaitSeconds  = 5
 )
 
 type sqsClient struct {
@@ -48,7 +52,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 				"Version": "2012-10-17",
 				"Id": "%s",
 				"Statement": [{
-					"Sid": "Sid1579089564623",
+					"Sid": "AllowEventBridgeToSendMessage-%s",
 					"Effect": "Allow",
 					"Principal": {
 						"Service": "events.amazonaws.com"
@@ -61,7 +65,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 						}
 					}
 				}]
-			}`, runID, s.arn, ruleArn),
+			}`, runID, runID, s.arn, ruleArn),
 			"SqsManagedSseEnabled": "true",
 		},
 	})
@@ -101,8 +105,8 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 		default:
 			resp, err := s.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 				QueueUrl:              aws.String(s.queueURL),
-				MaxNumberOfMessages:   10,
-				WaitTimeSeconds:       5,
+				MaxNumberOfMessages:   sqsMaxMessages,
+				WaitTimeSeconds:       sqsWaitSeconds,
 				MessageAttributeNames: []string{"All"},
 			})
 			// handle recovery from 'dial tcp' errors
@@ -164,8 +168,8 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 		default:
 			resp, err := s.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 				QueueUrl:              aws.String(s.queueURL),
-				MaxNumberOfMessages:   10,
-				WaitTimeSeconds:       5,
+				MaxNumberOfMessages:   sqsMaxMessages,
+				WaitTimeSeconds:       sqsWaitSeconds,
 				MessageAttributeNames: []string{"All"},
 			})
 			if err != nil {

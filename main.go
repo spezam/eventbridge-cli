@@ -25,7 +25,7 @@ var (
 func main() {
 	app := &cli.Command{
 		Name:    namespace,
-		Version: "1.12.0",
+		Version: "2.0.0",
 		Usage:   "AWS EventBridge cli",
 		Authors: []any{"matteo ridolfi"},
 		Action:   run,
@@ -81,8 +81,9 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	// SQS queue
 	if err := sqsClient.createQueue(ctx, ruleArn); err != nil {
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		_ = ebClient.deleteRule(ctx)
-
+		if cleanupErr := ebClient.deleteRule(ctx); cleanupErr != nil {
+			log.Printf("failed to delete EventBus rule %s: %v", ruleArn, cleanupErr)
+		}
 		return err
 	}
 	log.Printf("created temporary SQS queue with URL: %s", sqsClient.queueURL)
@@ -90,10 +91,14 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	// EventBus --> SQS
 	if err := ebClient.putTarget(ctx, sqsClient.arn); err != nil {
 		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-		_ = sqsClient.deleteQueue(ctx)
+		if cleanupErr := sqsClient.deleteQueue(ctx); cleanupErr != nil {
+			log.Printf("failed to delete SQS queue %s: %v", sqsClient.queueURL, cleanupErr)
+		}
 
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		_ = ebClient.deleteRule(ctx)
+		if cleanupErr := ebClient.deleteRule(ctx); cleanupErr != nil {
+			log.Printf("failed to delete EventBus rule %s: %v", ruleArn, cleanupErr)
+		}
 
 		return err
 	}
@@ -102,13 +107,19 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	// defer cleanup resources
 	defer func() {
 		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-		_ = sqsClient.deleteQueue(ctx)
+		if err := sqsClient.deleteQueue(ctx); err != nil {
+			log.Printf("failed to delete SQS queue %s: %v", sqsClient.queueURL, err)
+		}
 
 		log.Printf("removing EventBus target...")
-		_ = ebClient.removeTarget(ctx)
+		if err := ebClient.removeTarget(ctx); err != nil {
+			log.Printf("failed to remove EventBus target: %v", err)
+		}
 
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		_ = ebClient.deleteRule(ctx)
+		if err := ebClient.deleteRule(ctx); err != nil {
+			log.Printf("failed to delete EventBus rule %s: %v", ruleArn, err)
+		}
 	}()
 
 	// switch between CI and standard modes
