@@ -5,7 +5,7 @@ package main
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"testing"
@@ -35,7 +35,7 @@ const (
 
 func init() {
 	// disable logger
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 }
 
 func (m *mockSQSclient) CreateQueue(ctx context.Context, params *sqs.CreateQueueInput, optFns ...func(*sqs.Options)) (*sqs.CreateQueueOutput, error) {
@@ -157,9 +157,11 @@ func Test_pollQueueCancel(t *testing.T) {
 	t.Run("stopping poller", func(t *testing.T) {
 		client := sqsClient{}
 		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
 
-		go client.pollQueue(context.Background(), signalChan, false)
+		go client.pollQueue(context.Background(), signalChan, doneChan, false)
 		signalChan <- os.Interrupt
+		<-doneChan
 	})
 }
 
@@ -207,15 +209,63 @@ func Test_pollQueue(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			signalChan := make(chan os.Signal, 1)
+			doneChan := make(chan struct{})
 			client := &sqsClient{
 				client:   test.client,
 				queueURL: queueURL,
 			}
 
-			go client.pollQueue(context.Background(), signalChan, true)
+			go client.pollQueue(context.Background(), signalChan, doneChan, true)
 
 			time.Sleep(2 * time.Second)
 			signalChan <- os.Interrupt
+			<-doneChan
 		})
 	}
+}
+
+func Test_pollQueueCI(t *testing.T) {
+	t.Run("message received closes doneChan", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client: &mockSQSclient{
+				receiveMessages: []types.Message{
+					{
+						MessageId: aws.String("test-id"),
+						Body:      aws.String(`{"source":"test"}`),
+					},
+				},
+			},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+
+		select {
+		case <-doneChan:
+			// success
+		case <-time.After(5 * time.Second):
+			t.Fatal("timeout: doneChan was not closed after message received")
+		}
+	})
+
+	t.Run("signal stops poller without panic", func(t *testing.T) {
+		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
+		client := &sqsClient{
+			client:   &mockSQSclient{receiveMessages: []types.Message{}},
+			queueURL: queueURL,
+		}
+
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+		signalChan <- os.Interrupt
+
+		select {
+		case <-doneChan:
+			// success - no panic
+		case <-time.After(5 * time.Second):
+			t.Fatal("timeout: doneChan was not closed after signal")
+		}
+	})
 }

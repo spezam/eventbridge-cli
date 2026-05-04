@@ -74,7 +74,11 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	log.Printf("created temporary rule on bus [%s] with arn: %s", ebClient.eventBusName, ruleArn)
 
 	// SQS client
-	accountID := strings.Split(ruleArn, ":")[4]
+	arnParts := strings.Split(ruleArn, ":")
+	if len(arnParts) < 5 {
+		return fmt.Errorf("unexpected rule ARN format: %s", ruleArn)
+	}
+	accountID := arnParts[4]
 	queueName := namespace + "-" + runID
 	sqsClient := newSQSClient(awsCfg, accountID, queueName)
 
@@ -106,18 +110,21 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	// defer cleanup resources
 	defer func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
 		log.Printf("deleting temporary SQS queue %s...", sqsClient.queueURL)
-		if err := sqsClient.deleteQueue(ctx); err != nil {
+		if err := sqsClient.deleteQueue(cleanupCtx); err != nil {
 			log.Printf("failed to delete SQS queue %s: %v", sqsClient.queueURL, err)
 		}
 
 		log.Printf("removing EventBus target...")
-		if err := ebClient.removeTarget(ctx); err != nil {
+		if err := ebClient.removeTarget(cleanupCtx); err != nil {
 			log.Printf("failed to remove EventBus target: %v", err)
 		}
 
 		log.Printf("deleting temporary EventBus rule %s...", ruleArn)
-		if err := ebClient.deleteRule(ctx); err != nil {
+		if err := ebClient.deleteRule(cleanupCtx); err != nil {
 			log.Printf("failed to delete EventBus rule %s: %v", ruleArn, err)
 		}
 	}()
@@ -128,9 +135,11 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		log.Printf("CI mode")
 
 		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
 		signal.Notify(signalChan, os.Interrupt)
+		defer signal.Stop(signalChan)
 		// poll SQS queue undefinitely
-		go sqsClient.pollQueueCI(ctx, signalChan, cmd.Bool("prettyjson"), cmd.Int64("timeout"))
+		go sqsClient.pollQueueCI(ctx, signalChan, doneChan, cmd.Bool("prettyjson"), cmd.Int64("timeout"))
 
 		// read input event from cli or file
 		event := cmd.String("inputevent")
@@ -142,7 +151,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 				}
 			}
 
-			//time.Sleep(2 * time.Second) // might be needed if too fast
 			// put event
 			if err := ebClient.putEvent(ctx, event); err != nil {
 				return err
@@ -152,24 +160,30 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		select {
 		case <-time.After(time.Duration(cmd.Int64("timeout")) * time.Second):
 			log.Printf("%d seconds timeout reached", cmd.Int64("timeout"))
-
-			signalChan <- os.Interrupt
 			return fmt.Errorf("CI failed - didn't receive any event")
 
-		case <-signalChan:
+		case <-doneChan:
 			log.Printf("CI successful - message received")
+			return nil
+
+		case <-signalChan:
 			return nil
 		}
 
 	default:
 		signalChan := make(chan os.Signal, 1)
+		doneChan := make(chan struct{})
 		signal.Notify(signalChan, os.Interrupt)
+		defer signal.Stop(signalChan)
 		// poll SQS queue undefinitely
-		go sqsClient.pollQueue(ctx, signalChan, cmd.Bool("prettyjson"))
+		go sqsClient.pollQueue(ctx, signalChan, doneChan, cmd.Bool("prettyjson"))
 
-		// wait for a SIGINT (ie. CTRL-C)
-		<-signalChan
-		log.Printf("received an interrupt, cleaning up...")
+		// wait for a SIGINT (ie. CTRL-C) or poller exit
+		select {
+		case <-signalChan:
+			log.Printf("received an interrupt, cleaning up...")
+		case <-doneChan:
+		}
 	}
 
 	return nil

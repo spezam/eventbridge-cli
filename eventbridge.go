@@ -92,7 +92,7 @@ func (e *eventbridgeClient) deleteRule(ctx context.Context) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func (e *eventbridgeClient) putEvent(ctx context.Context, event string) error {
@@ -144,7 +144,7 @@ func (e *eventbridgeClient) putTarget(ctx context.Context, sqsArn string) error 
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func (e *eventbridgeClient) removeTarget(ctx context.Context) error {
@@ -160,5 +160,5 @@ func (e *eventbridgeClient) removeTarget(ctx context.Context) error {
 		return err
 	}
 
-	return err
+	return nil
 }

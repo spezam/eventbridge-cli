@@ -75,7 +75,7 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 	}
 
 	s.queueURL = *resp.QueueUrl
-	return err
+	return nil
 }
 
 func (s *sqsClient) deleteQueue(ctx context.Context) error {
@@ -87,13 +87,13 @@ func (s *sqsClient) deleteQueue(ctx context.Context) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
-func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, prettyJSON bool) {
+func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, doneChan chan struct{}, prettyJSON bool) {
 	log.Printf("polling queue %s ...", s.queueURL)
-	log.Printf("press ctr+c to stop")
-	defer close(signalChan)
+	log.Printf("press ctrl+c to stop")
+	defer close(doneChan)
 
 	for {
 		// goroutine
@@ -154,9 +154,9 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, pr
 	}
 }
 
-func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, prettyJSON bool, timeout int64) {
+func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, doneChan chan struct{}, prettyJSON bool, timeout int64) {
 	log.Printf("polling queue %s ...", s.queueURL)
-	defer close(signalChan)
+	defer close(doneChan)
 
 	for {
 		// goroutine
@@ -172,6 +172,13 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 				WaitTimeSeconds:       sqsWaitSeconds,
 				MessageAttributeNames: []string{"All"},
 			})
+			// handle recovery from 'dial tcp' errors
+			if err != nil && strings.Contains(err.Error(), "dial tcp") {
+				log.Printf("sqs.ReceiveMessage error: %s", err)
+				time.Sleep(10 * time.Second)
+				continue
+			}
+			// handle all other errors
 			if err != nil {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
 				return
