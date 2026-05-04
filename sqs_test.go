@@ -282,7 +282,7 @@ func Test_pollQueueCI(t *testing.T) {
 			queueURL: queueURL,
 		}
 
-		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, make(chan struct{}), false, 10)
 
 		select {
 		case <-doneChan:
@@ -300,7 +300,7 @@ func Test_pollQueueCI(t *testing.T) {
 			queueURL: queueURL,
 		}
 
-		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, make(chan struct{}), false, 10)
 		signalChan <- os.Interrupt
 
 		select {
@@ -326,7 +326,7 @@ func Test_pollQueueCI(t *testing.T) {
 			queueURL: queueURL,
 		}
 
-		go client.pollQueueCI(context.Background(), signalChan, doneChan, true, 10)
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, make(chan struct{}), true, 10)
 
 		select {
 		case <-doneChan:
@@ -344,7 +344,7 @@ func Test_pollQueueCI(t *testing.T) {
 			queueURL: queueURL,
 		}
 
-		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, make(chan struct{}), false, 10)
 
 		select {
 		case <-doneChan:
@@ -370,7 +370,7 @@ func Test_pollQueueCI(t *testing.T) {
 			queueURL: queueURL,
 		}
 
-		go client.pollQueueCI(context.Background(), signalChan, doneChan, false, 10)
+		go client.pollQueueCI(context.Background(), signalChan, doneChan, make(chan struct{}), false, 10)
 
 		select {
 		case <-doneChan:
