@@ -31,7 +31,7 @@ mv eventbridge-cli /somewhere/in/PATH
 ```
 ### With go install
 ```
-go install github.com/spezam/eventbridge-cli@latest
+go install github.com/spezam/eventbridge-cli/v2@latest
 ```
 ### Or build from source
 ```

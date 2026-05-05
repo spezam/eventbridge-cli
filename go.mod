@@ -1,4 +1,4 @@
-module github.com/spezam/eventbridge-cli
+module github.com/spezam/eventbridge-cli/v2
 
 go 1.25.0
 
