@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -16,19 +17,21 @@ type eventbridgeClient struct {
 	client *eventbridge.Client
 
 	eventBusName string
+	ruleName     string
 }
 
-func newEventbridgeClient(cfg aws.Config, eventBusName string) *eventbridgeClient {
+func newEventbridgeClient(cfg aws.Config, eventBusName, ruleName string) *eventbridgeClient {
 	return &eventbridgeClient{
 		client:       eventbridge.NewFromConfig(cfg),
 		eventBusName: eventBusName,
+		ruleName:     ruleName,
 	}
 }
 
 func (e *eventbridgeClient) testEventPattern(ctx context.Context, inputEvent, eventRule string) error {
 	// list eventbridge rules filtered by prefix
 	resp, err := e.client.ListRules(ctx, &eventbridge.ListRulesInput{
-		EventBusName: &e.eventBusName,
+		EventBusName: aws.String(e.eventBusName),
 		NamePrefix:   aws.String(eventRule),
 	})
 	if err != nil {
@@ -55,7 +58,7 @@ func (e *eventbridgeClient) testEventPattern(ctx context.Context, inputEvent, ev
 			return err
 		}
 
-		if res.Result == false {
+		if !res.Result {
 			log.Printf("%s: %s", *r.Name, color.RedString("✘"))
 			continue
 		}
@@ -67,15 +70,14 @@ func (e *eventbridgeClient) testEventPattern(ctx context.Context, inputEvent, ev
 
 func (e *eventbridgeClient) createRule(ctx context.Context, eventPattern string) (string, error) {
 	res, err := e.client.PutRule(ctx, &eventbridge.PutRuleInput{
-		Name:         aws.String(namespace + "-" + runID),
-		Description:  aws.String(fmt.Sprintf("[%s] temp rule", namespace)),
+		Name:         aws.String(e.ruleName),
+		Description:  aws.String("[" + namespace + "] temp rule"),
 		EventBusName: aws.String(e.eventBusName),
 		EventPattern: aws.String(eventPattern),
 		State:        types.RuleStateEnabled,
 	})
 	if err != nil {
-		log.Printf("eventbridge.CreateRule error: %s", err)
-		return "", err
+		return "", fmt.Errorf("createRule: %w", err)
 	}
 
 	return *res.RuleArn, nil
@@ -85,14 +87,9 @@ func (e *eventbridgeClient) deleteRule(ctx context.Context) error {
 	_, err := e.client.DeleteRule(ctx, &eventbridge.DeleteRuleInput{
 		EventBusName: aws.String(e.eventBusName),
 		Force:        true,
-		Name:         aws.String(namespace + "-" + runID),
+		Name:         aws.String(e.ruleName),
 	})
-	if err != nil {
-		log.Printf("eventbridge.DeleteRule error: %s", err)
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (e *eventbridgeClient) putEvent(ctx context.Context, event string) error {
@@ -122,7 +119,7 @@ func (e *eventbridgeClient) putEvent(ctx context.Context, event string) error {
 	}
 
 	if resp.FailedEntryCount > 0 {
-		return fmt.Errorf("%s", *resp.Entries[0].ErrorMessage)
+		return errors.New(*resp.Entries[0].ErrorMessage)
 	}
 
 	return nil
@@ -130,35 +127,26 @@ func (e *eventbridgeClient) putEvent(ctx context.Context, event string) error {
 
 func (e *eventbridgeClient) putTarget(ctx context.Context, sqsArn string) error {
 	_, err := e.client.PutTargets(ctx, &eventbridge.PutTargetsInput{
-		Rule:         aws.String(namespace + "-" + runID),
+		Rule:         aws.String(e.ruleName),
 		EventBusName: aws.String(e.eventBusName),
 		Targets: []types.Target{
 			{
-				Id:  aws.String(namespace + "-" + runID),
+				Id:  aws.String(e.ruleName),
 				Arn: aws.String(sqsArn),
 			},
 		},
 	})
 	if err != nil {
-		log.Printf("eventbridge.PutTarget error %s", err)
-		return err
+		return fmt.Errorf("putTarget: %w", err)
 	}
-
 	return nil
 }
 
 func (e *eventbridgeClient) removeTarget(ctx context.Context) error {
 	_, err := e.client.RemoveTargets(ctx, &eventbridge.RemoveTargetsInput{
-		Ids: []string{
-			namespace + "-" + runID,
-		},
-		Rule:         aws.String(namespace + "-" + runID),
+		Ids:          []string{e.ruleName},
+		Rule:         aws.String(e.ruleName),
 		EventBusName: aws.String(e.eventBusName),
 	})
-	if err != nil {
-		log.Printf("eventbridge.RemoveTarget error %s", err)
-		return err
-	}
-
-	return nil
+	return err
 }

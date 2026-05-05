@@ -81,35 +81,35 @@ Resources:
 }
 
 func Test_convertMap(t *testing.T) {
-	t.Run("converts map[interface{}]interface{} to map[string]interface{}", func(t *testing.T) {
-		input := map[interface{}]interface{}{
+	t.Run("converts map[any]any to map[string]any", func(t *testing.T) {
+		input := map[any]any{
 			"key": "value",
 		}
 		result := convertMap(input)
-		m, ok := result.(map[string]interface{})
+		m, ok := result.(map[string]any)
 		assert.True(t, ok)
 		assert.Equal(t, "value", m["key"])
 	})
 
 	t.Run("converts nested maps recursively", func(t *testing.T) {
-		input := map[interface{}]interface{}{
-			"outer": map[interface{}]interface{}{
+		input := map[any]any{
+			"outer": map[any]any{
 				"inner": "value",
 			},
 		}
 		result := convertMap(input)
-		m := result.(map[string]interface{})
-		inner := m["outer"].(map[string]interface{})
+		m := result.(map[string]any)
+		inner := m["outer"].(map[string]any)
 		assert.Equal(t, "value", inner["inner"])
 	})
 
-	t.Run("converts []interface{} elements recursively", func(t *testing.T) {
-		input := []interface{}{
-			map[interface{}]interface{}{"key": "value"},
+	t.Run("converts []any elements recursively", func(t *testing.T) {
+		input := []any{
+			map[any]any{"key": "value"},
 		}
 		result := convertMap(input)
-		slice := result.([]interface{})
-		m := slice[0].(map[string]interface{})
+		slice := result.([]any)
+		m := slice[0].(map[string]any)
 		assert.Equal(t, "value", m["key"])
 	})
 

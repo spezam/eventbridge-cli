@@ -17,17 +17,14 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	namespace = "eventbridge-cli"
-	runID     = uuid.New().String()
-)
+const namespace = "eventbridge-cli"
 
 func main() {
 	app := &cli.Command{
-		Name:    namespace,
-		Version: "2.0.0",
-		Usage:   "AWS EventBridge cli",
-		Authors: []any{"matteo ridolfi"},
+		Name:     namespace,
+		Version:  "2.0.1",
+		Usage:    "AWS EventBridge cli",
+		Authors:  []any{"matteo ridolfi"},
 		Action:   run,
 		Flags:    flags,
 		Commands: commands,
@@ -40,6 +37,8 @@ func main() {
 }
 
 func run(ctx context.Context, cmd *cli.Command) error {
+	ruleName := namespace + "-" + uuid.New().String()
+
 	// AWS config
 	awsCfg, err := newAWSConfig(ctx, cmd.String("profile"), cmd.String("region"))
 	if err != nil {
@@ -48,7 +47,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	// eventbridge client
 	log.Printf("creating eventBridge client for bus [%s]", cmd.String("eventbusname"))
-	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"), ruleName)
 
 	// create temporary eventbridge event rule
 	eventpattern := cmd.String("eventpattern")
@@ -79,8 +78,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unexpected rule ARN format: %s", ruleArn)
 	}
 	accountID := arnParts[4]
-	queueName := namespace + "-" + runID
-	sqsClient := newSQSClient(awsCfg, accountID, queueName)
+	sqsClient := newSQSClient(awsCfg, accountID, ruleName)
 
 	// SQS queue
 	if err := sqsClient.createQueue(ctx, ruleArn); err != nil {
@@ -142,8 +140,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		readyChan := make(chan struct{})
 		signal.Notify(signalChan, os.Interrupt)
 		defer signal.Stop(signalChan)
-		// poll SQS queue until event received or timeout
-		go sqsClient.pollQueueCI(pollCtx, signalChan, doneChan, readyChan, cmd.Bool("prettyjson"), cmd.Int64("timeout"))
+		go sqsClient.pollQueueCI(pollCtx, doneChan, readyChan, cmd.Bool("prettyjson"))
 
 		// wait for poller to start before sending the event
 		<-readyChan
@@ -167,6 +164,8 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		select {
 		case <-time.After(time.Duration(cmd.Int64("timeout")) * time.Second):
 			log.Printf("%d seconds timeout reached", cmd.Int64("timeout"))
+			cancelPoll()
+			<-doneChan
 			return fmt.Errorf("CI failed - didn't receive any event")
 
 		case <-doneChan:
@@ -174,21 +173,27 @@ func run(ctx context.Context, cmd *cli.Command) error {
 			return nil
 
 		case <-signalChan:
+			cancelPoll()
+			<-doneChan
 			return nil
 		}
 
 	default:
+		pollCtx, cancelPoll := context.WithCancel(ctx)
+		defer cancelPoll()
+
 		signalChan := make(chan os.Signal, 1)
 		doneChan := make(chan struct{})
 		signal.Notify(signalChan, os.Interrupt)
 		defer signal.Stop(signalChan)
-		// poll SQS queue undefinitely
-		go sqsClient.pollQueue(ctx, signalChan, doneChan, cmd.Bool("prettyjson"))
+		go sqsClient.pollQueue(pollCtx, doneChan, cmd.Bool("prettyjson"))
 
 		// wait for a SIGINT (ie. CTRL-C) or poller exit
 		select {
 		case <-signalChan:
-			log.Printf("received an interrupt, cleaning up...")
+			log.Printf("received an interrupt, stopping poller...")
+			cancelPoll()
+			<-doneChan
 		case <-doneChan:
 		}
 	}
@@ -205,7 +210,7 @@ func runTestEventPattern(ctx context.Context, cmd *cli.Command) error {
 
 	// eventbridge client
 	log.Printf("creating eventBridge client for bus [%s]", cmd.String("eventbusname"))
-	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"), "")
 
 	inputevent := cmd.String("inputevent")
 	if strings.HasPrefix(inputevent, "file://") {
@@ -224,25 +229,20 @@ func runTestEventPattern(ctx context.Context, cmd *cli.Command) error {
 }
 
 func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, error) {
-	var awsCfg aws.Config
-	var err error
-
-	// use profile if present as cli parameter
+	var opts []func(*config.LoadOptions) error
 	if profile != "" {
-		awsCfg, err = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile(profile))
-	} else {
-		awsCfg, err = config.LoadDefaultConfig(ctx)
+		opts = append(opts, config.WithSharedConfigProfile(profile))
 	}
+
+	awsCfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
-		return awsCfg, err
+		return aws.Config{}, err
 	}
 
-	// check credentials validity
 	if _, err := awsCfg.Credentials.Retrieve(ctx); err != nil {
-		return awsCfg, err
+		return aws.Config{}, err
 	}
 
-	// override profile region if present
 	if region != "" {
 		awsCfg.Region = region
 	}

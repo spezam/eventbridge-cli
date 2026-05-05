@@ -15,6 +15,7 @@ permissions:
 jobs:
   test:
     name: test
+    timeout-minutes: 10
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
@@ -33,6 +34,7 @@ jobs:
 
   integration-test:
     name: integration test
+    timeout-minutes: 10
     needs: test
     runs-on: ubuntu-latest
     permissions:
