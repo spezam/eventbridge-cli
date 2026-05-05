@@ -21,10 +21,10 @@ const namespace = "eventbridge-cli"
 
 func main() {
 	app := &cli.Command{
-		Name:    namespace,
-		Version: "2.0.0",
-		Usage:   "AWS EventBridge cli",
-		Authors: []any{"matteo ridolfi"},
+		Name:     namespace,
+		Version:  "2.0.0",
+		Usage:    "AWS EventBridge cli",
+		Authors:  []any{"matteo ridolfi"},
 		Action:   run,
 		Flags:    flags,
 		Commands: commands,
@@ -140,8 +140,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		readyChan := make(chan struct{})
 		signal.Notify(signalChan, os.Interrupt)
 		defer signal.Stop(signalChan)
-		// poll SQS queue until event received or timeout
-		go sqsClient.pollQueueCI(pollCtx, signalChan, doneChan, readyChan, cmd.Bool("prettyjson"), cmd.Int64("timeout"))
+		go sqsClient.pollQueueCI(pollCtx, doneChan, readyChan, cmd.Bool("prettyjson"))
 
 		// wait for poller to start before sending the event
 		<-readyChan
@@ -165,6 +164,8 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		select {
 		case <-time.After(time.Duration(cmd.Int64("timeout")) * time.Second):
 			log.Printf("%d seconds timeout reached", cmd.Int64("timeout"))
+			cancelPoll()
+			<-doneChan
 			return fmt.Errorf("CI failed - didn't receive any event")
 
 		case <-doneChan:
@@ -172,21 +173,27 @@ func run(ctx context.Context, cmd *cli.Command) error {
 			return nil
 
 		case <-signalChan:
+			cancelPoll()
+			<-doneChan
 			return nil
 		}
 
 	default:
+		pollCtx, cancelPoll := context.WithCancel(ctx)
+		defer cancelPoll()
+
 		signalChan := make(chan os.Signal, 1)
 		doneChan := make(chan struct{})
 		signal.Notify(signalChan, os.Interrupt)
 		defer signal.Stop(signalChan)
-		// poll SQS queue undefinitely
-		go sqsClient.pollQueue(ctx, signalChan, doneChan, cmd.Bool("prettyjson"))
+		go sqsClient.pollQueue(pollCtx, doneChan, cmd.Bool("prettyjson"))
 
 		// wait for a SIGINT (ie. CTRL-C) or poller exit
 		select {
 		case <-signalChan:
-			log.Printf("received an interrupt, cleaning up...")
+			log.Printf("received an interrupt, stopping poller...")
+			cancelPoll()
+			<-doneChan
 		case <-doneChan:
 		}
 	}
