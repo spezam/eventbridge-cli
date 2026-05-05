@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -65,13 +66,12 @@ func (s *sqsClient) createQueue(ctx context.Context, ruleArn string) error {
 						}
 					}
 				}]
-			}`, runID, runID, s.arn, ruleArn),
+			}`, s.queueName, s.queueName, s.arn, ruleArn),
 			"SqsManagedSseEnabled": "true",
 		},
 	})
 	if err != nil {
-		log.Printf("sqs.CreateQueue error: %s", err)
-		return err
+		return fmt.Errorf("createQueue: %w", err)
 	}
 
 	s.queueURL = *resp.QueueUrl
@@ -82,12 +82,7 @@ func (s *sqsClient) deleteQueue(ctx context.Context) error {
 	_, err := s.client.DeleteQueue(ctx, &sqs.DeleteQueueInput{
 		QueueUrl: aws.String(s.queueURL),
 	})
-	if err != nil {
-		log.Printf("sqs.DeleteQueue error: %s", err)
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, doneChan chan struct{}, prettyJSON bool) {
@@ -109,8 +104,9 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, do
 				WaitTimeSeconds:       sqsWaitSeconds,
 				MessageAttributeNames: []string{"All"},
 			})
-			// handle recovery from 'dial tcp' errors
-			if err != nil && strings.Contains(err.Error(), "dial tcp") {
+			// handle recovery from transient network errors
+			var netErr net.Error
+			if err != nil && errors.As(err, &netErr) {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
 
 				// backoff
@@ -127,7 +123,7 @@ func (s *sqsClient) pollQueue(ctx context.Context, signalChan chan os.Signal, do
 				continue
 			}
 
-			entries := []types.DeleteMessageBatchRequestEntry{}
+			entries := make([]types.DeleteMessageBatchRequestEntry, 0, len(resp.Messages))
 			for _, m := range resp.Messages {
 				entries = append(entries, types.DeleteMessageBatchRequestEntry{
 					Id:            m.MessageId,
@@ -180,8 +176,9 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 			if err != nil && ctx.Err() != nil {
 				return
 			}
-			// handle recovery from 'dial tcp' errors
-			if err != nil && strings.Contains(err.Error(), "dial tcp") {
+			// handle recovery from transient network errors
+			var netErr net.Error
+			if err != nil && errors.As(err, &netErr) {
 				log.Printf("sqs.ReceiveMessage error: %s", err)
 				time.Sleep(10 * time.Second)
 				continue
@@ -196,7 +193,7 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 				continue
 			}
 
-			entries := []types.DeleteMessageBatchRequestEntry{}
+			entries := make([]types.DeleteMessageBatchRequestEntry, 0, len(resp.Messages))
 			for _, m := range resp.Messages {
 				entries = append(entries, types.DeleteMessageBatchRequestEntry{
 					Id:            m.MessageId,
@@ -226,7 +223,7 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, signalChan chan os.Signal, 
 }
 
 func colorJSON(body string) string {
-	var v interface{}
+	var v any
 	if err := json.Unmarshal([]byte(body), &v); err != nil {
 		return body
 	}

@@ -6,7 +6,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
 )
@@ -46,9 +45,6 @@ func Test_integration(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// override global runID as the value doesn't refresh for each iteration
-			runID = uuid.New().String()
-
 			app := &cli.Command{
 				Name:     namespace,
 				Action:   run,

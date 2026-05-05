@@ -19,7 +19,7 @@ type samTemplate struct {
 				Properties struct {
 					EventBusName string      `yaml:"EventBusName,omitempty"`
 					InputPath    string      `yaml:"InputPath,omitempty"`
-					Pattern      interface{} `yaml:"Pattern,omitempty"`
+					Pattern      any `yaml:"Pattern,omitempty"`
 				} `yaml:"Properties"`
 			} `yaml:"Events"`
 		} `yaml:"Properties"`
@@ -65,17 +65,17 @@ func dataFromSAM(sampath string) (string, error) {
 	return string(pattern), nil
 }
 
-// convert map[interface{}]interface{} to map[string]interface{}
-func convertMap(i interface{}) interface{} {
+// convert map[any]any to map[string]any
+func convertMap(i any) any {
 	switch x := i.(type) {
-	case map[interface{}]interface{}:
-		m := map[string]interface{}{}
+	case map[any]any:
+		m := map[string]any{}
 		for k, v := range x {
 			m[k.(string)] = convertMap(v)
 		}
 		return m
 
-	case []interface{}:
+	case []any:
 		for i, v := range x {
 			x[i] = convertMap(v)
 		}

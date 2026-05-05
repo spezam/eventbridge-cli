@@ -17,10 +17,7 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	namespace = "eventbridge-cli"
-	runID     = uuid.New().String()
-)
+const namespace = "eventbridge-cli"
 
 func main() {
 	app := &cli.Command{
@@ -40,6 +37,8 @@ func main() {
 }
 
 func run(ctx context.Context, cmd *cli.Command) error {
+	ruleName := namespace + "-" + uuid.New().String()
+
 	// AWS config
 	awsCfg, err := newAWSConfig(ctx, cmd.String("profile"), cmd.String("region"))
 	if err != nil {
@@ -48,7 +47,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 	// eventbridge client
 	log.Printf("creating eventBridge client for bus [%s]", cmd.String("eventbusname"))
-	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"), ruleName)
 
 	// create temporary eventbridge event rule
 	eventpattern := cmd.String("eventpattern")
@@ -79,8 +78,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unexpected rule ARN format: %s", ruleArn)
 	}
 	accountID := arnParts[4]
-	queueName := namespace + "-" + runID
-	sqsClient := newSQSClient(awsCfg, accountID, queueName)
+	sqsClient := newSQSClient(awsCfg, accountID, ruleName)
 
 	// SQS queue
 	if err := sqsClient.createQueue(ctx, ruleArn); err != nil {
@@ -205,7 +203,7 @@ func runTestEventPattern(ctx context.Context, cmd *cli.Command) error {
 
 	// eventbridge client
 	log.Printf("creating eventBridge client for bus [%s]", cmd.String("eventbusname"))
-	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"))
+	ebClient := newEventbridgeClient(awsCfg, cmd.String("eventbusname"), "")
 
 	inputevent := cmd.String("inputevent")
 	if strings.HasPrefix(inputevent, "file://") {
@@ -224,25 +222,20 @@ func runTestEventPattern(ctx context.Context, cmd *cli.Command) error {
 }
 
 func newAWSConfig(ctx context.Context, profile, region string) (aws.Config, error) {
-	var awsCfg aws.Config
-	var err error
-
-	// use profile if present as cli parameter
+	var opts []func(*config.LoadOptions) error
 	if profile != "" {
-		awsCfg, err = config.LoadDefaultConfig(ctx, config.WithSharedConfigProfile(profile))
-	} else {
-		awsCfg, err = config.LoadDefaultConfig(ctx)
+		opts = append(opts, config.WithSharedConfigProfile(profile))
 	}
+
+	awsCfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
-		return awsCfg, err
+		return aws.Config{}, err
 	}
 
-	// check credentials validity
 	if _, err := awsCfg.Credentials.Retrieve(ctx); err != nil {
-		return awsCfg, err
+		return aws.Config{}, err
 	}
 
-	// override profile region if present
 	if region != "" {
 		awsCfg.Region = region
 	}
