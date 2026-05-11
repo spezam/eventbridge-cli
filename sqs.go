@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	sqsMaxMessages  = 10
-	sqsWaitSeconds  = 5
+	sqsMaxMessages = 10
+	sqsWaitSeconds = 5
 )
 
 type sqsClient struct {
