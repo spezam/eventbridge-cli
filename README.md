@@ -235,4 +235,8 @@ Here is a summary of all the comparison operators available in EventBridge:
 | Does not exist | ProductName does not exist | "ProductName": [{ "exists": false }] |
 | Begins with | Region is in the US | "Region": [{ "prefix": "us-" }] |
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=spezam/eventbridge-cli&type=Date&theme=dark)](https://star-history.com/#spezam/eventbridge-cli&Date)
+
 
