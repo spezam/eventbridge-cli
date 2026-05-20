@@ -147,7 +147,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 		// give EventBridge time to propagate the target before putting the event
 		// https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-troubleshooting.html#eb-rule-does-not-match
-		time.Sleep(10 * time.Second)
+		time.Sleep(12 * time.Second)
 
 		// read input event from cli or file
 		event := cmd.String("inputevent")
