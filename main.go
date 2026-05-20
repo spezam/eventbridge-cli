@@ -145,10 +145,6 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		// wait for poller to start before sending the event
 		<-readyChan
 
-		// give EventBridge time to propagate the target before putting the event
-		// https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-troubleshooting.html#eb-rule-does-not-match
-		time.Sleep(12 * time.Second)
-
 		// read input event from cli or file
 		event := cmd.String("inputevent")
 		if event != "" {
@@ -159,28 +155,34 @@ func run(ctx context.Context, cmd *cli.Command) error {
 				}
 			}
 
-			// put event
-			if err := ebClient.putEvent(ctx, event); err != nil {
-				return err
+			// EventBridge does not guarantee that a newly created target is immediately active.
+			// Retry putEvent on a short interval so we proceed as soon as the target is ready.
+			// https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-troubleshooting.html#eb-rule-does-not-match
+			const (
+				retryInterval = 6 * time.Second
+				maxRetries    = 4
+			)
+			for attempt := range maxRetries {
+				if err := ebClient.putEvent(ctx, event); err != nil {
+					return err
+				}
+				select {
+				case <-time.After(retryInterval):
+					log.Printf("no event received yet, retrying (%d/%d)...", attempt+1, maxRetries)
+				case <-doneChan:
+					log.Printf("CI successful - message received")
+					return nil
+				case <-signalChan:
+					cancelPoll()
+					<-doneChan
+					return nil
+				}
 			}
 		}
 
-		select {
-		case <-time.After(time.Duration(cmd.Int64("timeout")) * time.Second):
-			log.Printf("%d seconds timeout reached", cmd.Int64("timeout"))
-			cancelPoll()
-			<-doneChan
-			return fmt.Errorf("CI failed - didn't receive any event")
-
-		case <-doneChan:
-			log.Printf("CI successful - message received")
-			return nil
-
-		case <-signalChan:
-			cancelPoll()
-			<-doneChan
-			return nil
-		}
+		cancelPoll()
+		<-doneChan
+		return fmt.Errorf("CI failed - didn't receive any event")
 
 	default:
 		pollCtx, cancelPoll := context.WithCancel(ctx)
