@@ -237,6 +237,6 @@ Here is a summary of all the comparison operators available in EventBridge:
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=spezam/eventbridge-cli&type=Date)](https://star-history.com/#spezam/eventbridge-cli&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=spezam/eventbridge-cli&type=Date&theme=dark)](https://star-history.com/#spezam/eventbridge-cli&Date)
 
 
