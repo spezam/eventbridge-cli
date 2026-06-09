@@ -22,7 +22,7 @@ const namespace = "eventbridge-cli"
 func main() {
 	app := &cli.Command{
 		Name:     namespace,
-		Version:  "2.0.3",
+		Version:  "2.1.0",
 		Usage:    "AWS EventBridge cli",
 		Authors:  []any{"matteo ridolfi"},
 		Action:   run,
