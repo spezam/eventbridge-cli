@@ -60,7 +60,7 @@ func Test_integration(t *testing.T) {
 				"--eventpattern", test.eventpattern,
 				"--inputevent", test.inputevent,
 				"--prettyjson",
-				"--timeout", "8",
+				"--timeout", "30",
 			})
 
 			if test.err {

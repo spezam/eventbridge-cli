@@ -22,7 +22,7 @@ const namespace = "eventbridge-cli"
 func main() {
 	app := &cli.Command{
 		Name:     namespace,
-		Version:  "2.1.0",
+		Version:  "2.2.0",
 		Usage:    "AWS EventBridge cli",
 		Authors:  []any{"matteo ridolfi"},
 		Action:   run,
@@ -164,7 +164,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		// Send the event once, then re-send on a short interval (bounded by --timeout) so we
 		// proceed as soon as the target is ready, without flooding it with duplicates.
 		// https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-troubleshooting.html#eb-rule-does-not-match
-		const retryInterval = 6 * time.Second
+		const retryInterval = 3 * time.Second
 		if err := ebClient.putEvent(ctx, event); err != nil {
 			return err
 		}
