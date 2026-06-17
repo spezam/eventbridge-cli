@@ -132,7 +132,8 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	case "ci":
 		log.Printf("CI mode")
 
-		pollCtx, cancelPoll := context.WithCancel(ctx)
+		timeout := time.Duration(cmd.Int64("timeout")) * time.Second
+		pollCtx, cancelPoll := context.WithTimeout(ctx, timeout)
 		defer cancelPoll()
 
 		signalChan := make(chan os.Signal, 1)
@@ -147,42 +148,48 @@ func run(ctx context.Context, cmd *cli.Command) error {
 
 		// read input event from cli or file
 		event := cmd.String("inputevent")
-		if event != "" {
-			if strings.HasPrefix(event, "file://") {
-				event, err = dataFromFile(event)
-				if err != nil {
-					return err
-				}
-			}
-
-			// EventBridge does not guarantee that a newly created target is immediately active.
-			// Retry putEvent on a short interval so we proceed as soon as the target is ready.
-			// https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-troubleshooting.html#eb-rule-does-not-match
-			const (
-				retryInterval = 6 * time.Second
-				maxRetries    = 4
-			)
-			for attempt := range maxRetries {
-				if err := ebClient.putEvent(ctx, event); err != nil {
-					return err
-				}
-				select {
-				case <-time.After(retryInterval):
-					log.Printf("no event received yet, retrying (%d/%d)...", attempt+1, maxRetries)
-				case <-doneChan:
-					log.Printf("CI successful - message received")
-					return nil
-				case <-signalChan:
-					cancelPoll()
-					<-doneChan
-					return nil
-				}
+		if event == "" {
+			cancelPoll()
+			<-doneChan
+			return fmt.Errorf("CI failed - no input event provided")
+		}
+		if strings.HasPrefix(event, "file://") {
+			event, err = dataFromFile(event)
+			if err != nil {
+				return err
 			}
 		}
 
-		cancelPoll()
-		<-doneChan
-		return fmt.Errorf("CI failed - didn't receive any event")
+		// EventBridge does not guarantee that a newly created target is immediately active.
+		// Send the event once, then re-send on a short interval (bounded by --timeout) so we
+		// proceed as soon as the target is ready, without flooding it with duplicates.
+		// https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-troubleshooting.html#eb-rule-does-not-match
+		const retryInterval = 6 * time.Second
+		if err := ebClient.putEvent(ctx, event); err != nil {
+			return err
+		}
+
+		ticker := time.NewTicker(retryInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-doneChan:
+				log.Printf("CI successful - message received")
+				return nil
+			case <-signalChan:
+				cancelPoll()
+				<-doneChan
+				return nil
+			case <-pollCtx.Done():
+				<-doneChan
+				return fmt.Errorf("CI failed - didn't receive any event within %s", timeout)
+			case <-ticker.C:
+				log.Printf("no event received yet, retrying...")
+				if err := ebClient.putEvent(ctx, event); err != nil {
+					return err
+				}
+			}
+		}
 
 	default:
 		pollCtx, cancelPoll := context.WithCancel(ctx)

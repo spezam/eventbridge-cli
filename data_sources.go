@@ -17,9 +17,9 @@ type samTemplate struct {
 			Events       map[string]struct {
 				Type       string `yaml:"Type"`
 				Properties struct {
-					EventBusName string      `yaml:"EventBusName,omitempty"`
-					InputPath    string      `yaml:"InputPath,omitempty"`
-					Pattern      any `yaml:"Pattern,omitempty"`
+					EventBusName string `yaml:"EventBusName,omitempty"`
+					InputPath    string `yaml:"InputPath,omitempty"`
+					Pattern      any    `yaml:"Pattern,omitempty"`
 				} `yaml:"Properties"`
 			} `yaml:"Events"`
 		} `yaml:"Properties"`
