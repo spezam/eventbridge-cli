@@ -84,75 +84,36 @@ func (s *sqsClient) deleteQueue(ctx context.Context) error {
 	return err
 }
 
-func (s *sqsClient) pollQueue(ctx context.Context, doneChan chan struct{}, prettyJSON bool) {
-	log.Printf("polling queue %s ...", s.queueURL)
-	log.Printf("press ctrl+c to stop")
-	defer close(doneChan)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-
-		resp, err := s.client.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
-			QueueUrl:              aws.String(s.queueURL),
-			MaxNumberOfMessages:   sqsMaxMessages,
-			WaitTimeSeconds:       sqsWaitSeconds,
-			MessageAttributeNames: []string{"All"},
-		})
-		if err != nil {
-			if ctx.Err() != nil {
-				return
-			}
-			var netErr net.Error
-			if errors.As(err, &netErr) {
-				log.Printf("sqs.ReceiveMessage error: %s", err)
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(10 * time.Second):
-				}
-				continue
-			}
-			log.Printf("sqs.ReceiveMessage error: %s", err)
-			return
-		}
-
-		if len(resp.Messages) == 0 {
-			continue
-		}
-
-		entries := make([]types.DeleteMessageBatchRequestEntry, 0, len(resp.Messages))
-		for _, m := range resp.Messages {
-			entries = append(entries, types.DeleteMessageBatchRequestEntry{
-				Id:            m.MessageId,
-				ReceiptHandle: m.ReceiptHandle,
-			})
-
-			if prettyJSON {
-				log.Println(colorJSON(*m.Body))
-				continue
-			}
-
-			log.Printf("%s", *m.Body)
-		}
-
-		_, err = s.client.DeleteMessageBatch(ctx, &sqs.DeleteMessageBatchInput{
-			QueueUrl: aws.String(s.queueURL),
-			Entries:  entries,
-		})
-		if err != nil {
-			log.Printf("sqs.DeleteMessageBatch error: %s", err)
-		}
-	}
+// pollOptions configures the shared poll loop.
+type pollOptions struct {
+	readyChan  chan struct{} // closed once polling starts; nil to skip
+	prettyJSON bool
+	prefix     string // log prefix for each received message body
+	once       bool   // return after the first received batch (CI mode)
 }
 
+// pollQueue continuously receives and deletes messages until ctx is cancelled.
+func (s *sqsClient) pollQueue(ctx context.Context, doneChan chan struct{}, prettyJSON bool) {
+	log.Printf("press ctrl+c to stop")
+	s.poll(ctx, doneChan, pollOptions{prettyJSON: prettyJSON})
+}
+
+// pollQueueCI signals readiness via readyChan, then returns after the first batch is received.
 func (s *sqsClient) pollQueueCI(ctx context.Context, doneChan chan struct{}, readyChan chan struct{}, prettyJSON bool) {
+	s.poll(ctx, doneChan, pollOptions{
+		readyChan:  readyChan,
+		prettyJSON: prettyJSON,
+		prefix:     "received event: ",
+		once:       true,
+	})
+}
+
+func (s *sqsClient) poll(ctx context.Context, doneChan chan struct{}, opts pollOptions) {
 	log.Printf("polling queue %s ...", s.queueURL)
 	defer close(doneChan)
-	close(readyChan)
+	if opts.readyChan != nil {
+		close(opts.readyChan)
+	}
 
 	for {
 		select {
@@ -196,12 +157,11 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, doneChan chan struct{}, rea
 				ReceiptHandle: m.ReceiptHandle,
 			})
 
-			if prettyJSON {
-				log.Printf("received event: %s", colorJSON(*m.Body))
-				continue
+			body := *m.Body
+			if opts.prettyJSON {
+				body = colorJSON(body)
 			}
-
-			log.Printf("received event: %s", *m.Body)
+			log.Printf("%s%s", opts.prefix, body)
 		}
 
 		_, err = s.client.DeleteMessageBatch(ctx, &sqs.DeleteMessageBatchInput{
@@ -212,7 +172,9 @@ func (s *sqsClient) pollQueueCI(ctx context.Context, doneChan chan struct{}, rea
 			log.Printf("sqs.DeleteMessageBatch error: %s", err)
 		}
 
-		return
+		if opts.once {
+			return
+		}
 	}
 }
 
