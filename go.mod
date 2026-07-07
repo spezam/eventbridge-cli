@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.42.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.25
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.46.6
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.44.0
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.44.1
 	github.com/fatih/color v1.19.0
 	github.com/google/uuid v1.6.0
 	github.com/neilotoole/jsoncolor v0.9.1
