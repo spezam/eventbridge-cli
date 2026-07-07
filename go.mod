@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/neilotoole/jsoncolor v0.9.1
 	github.com/stretchr/testify v1.11.1
-	github.com/urfave/cli/v3 v3.10.0
+	github.com/urfave/cli/v3 v3.10.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
