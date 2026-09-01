@@ -3,7 +3,7 @@ module github.com/spezam/eventbridge-cli/v2
 go 1.25.0
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.43.6
+	github.com/aws/aws-sdk-go-v2 v1.43.7
 	github.com/aws/aws-sdk-go-v2/config v1.32.37
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.48.6
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.46.6
